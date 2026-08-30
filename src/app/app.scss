@@ -68,6 +68,21 @@
   font-weight: 600;
 }
 
+.desktop-nav a {
+  padding: 8px 12px;
+  border-radius: 10px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.desktop-nav a:hover {
+  background: rgba(79, 70, 229, 0.08);
+}
+
+.desktop-nav a.active {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+}
+
 .bottom-nav {
   position: sticky;
   bottom: 0;
@@ -85,6 +100,14 @@
   color: #edf2ff;
   font-size: 0.82rem;
   padding: 8px 6px;
+  border-radius: 10px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.bottom-nav a.active {
+  background: rgba(124, 58, 237, 0.35);
+  color: white;
+  font-weight: 800;
 }
 
 .logout-btn {

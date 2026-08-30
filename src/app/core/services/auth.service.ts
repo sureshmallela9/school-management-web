@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { JwtPayload, UserDto } from '../models';
 
@@ -9,6 +9,8 @@ export class AuthService {
   private readonly userSubject = new BehaviorSubject<UserDto | null>(this.getStoredUser());
 
   readonly currentUser$ = this.userSubject.asObservable();
+  // reactive signal so components can react to login/logout without re-reading localStorage in a computed()
+  readonly currentUserSignal = signal<UserDto | null>(this.getStoredUser());
 
   login(email: string, password: string): Observable<{ token: string }> {
     const normalizedEmail = email.trim().toLowerCase();
@@ -44,6 +46,7 @@ export class AuthService {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
     this.userSubject.next(null);
+    this.currentUserSignal.set(null);
   }
 
   getToken(): string | null {
@@ -55,6 +58,7 @@ export class AuthService {
     if (user) {
       localStorage.setItem(this.userKey, JSON.stringify(user));
       this.userSubject.next(user);
+      this.currentUserSignal.set(user);
     }
   }
 

@@ -31,7 +31,8 @@ import { MockDataService } from '../../core/services/mock-data.service';
       .page-shell { display: grid; gap: 18px; }
       .eyebrow { margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.72rem; color: #4f46e5; font-weight: 700; }
       .tenant-list { display: grid; gap: 12px; }
-      .tenant-item { background: white; border-radius: 16px; padding: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 18px rgba(15,23,42,0.06); }
+      .tenant-item { background: white; border-radius: 16px; padding: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 18px rgba(15,23,42,0.06); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+      .tenant-item:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(15,23,42,0.1); }
       .tenant-item small { display: block; color: #64748b; margin-top: 6px; }
       .status { padding: 6px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; background: #f1f5f9; color: #334155; }
       .status.active { background: #dcfce7; color: #166534; }

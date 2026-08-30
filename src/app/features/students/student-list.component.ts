@@ -40,7 +40,8 @@ import { MockDataService } from '../../core/services/mock-data.service';
       .eyebrow { margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.72rem; color: #4f46e5; font-weight: 700; }
       h1 { margin: 0; }
       .student-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-      .student-card { background: white; border-radius: 20px; padding: 18px; box-shadow: 0 8px 18px rgba(15,23,42,0.06); display: grid; gap: 12px; }
+      .student-card { background: white; border-radius: 20px; padding: 18px; box-shadow: 0 8px 18px rgba(15,23,42,0.06); display: grid; gap: 12px; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+      .student-card:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(15,23,42,0.1); }
       .avatar { width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #dbeafe, #e9d5ff); color: #1d4ed8; font-weight: 800; display: grid; place-items: center; }
       .meta h2 { margin: 0; }
       .meta p { margin: 4px 0 0; color: #64748b; }

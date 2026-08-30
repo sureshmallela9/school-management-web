@@ -95,7 +95,8 @@ import { MockDataService } from '../../core/services/mock-data.service';
       .stat-card span { display: block; color: #64748b; margin-bottom: 12px; }
       .stat-card strong { font-size: 1.7rem; }
       .student-list { display: grid; gap: 18px; }
-      .student-card { background: white; border-radius: 22px; padding: 18px; box-shadow: 0 12px 30px rgba(15,23,42,0.06); }
+      .student-card { background: white; border-radius: 22px; padding: 18px; box-shadow: 0 12px 30px rgba(15,23,42,0.06); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+      .student-card:hover { transform: translateY(-2px); box-shadow: 0 18px 36px rgba(15,23,42,0.1); }
       .student-header { display: flex; align-items: center; gap: 14px; }
       .avatar { width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, #dbeafe, #ddd6fe); display: grid; place-items: center; font-weight: 700; color: #1d4ed8; }
       .student-header h2 { margin: 0; font-size: 1.3rem; }
@@ -115,7 +116,8 @@ import { MockDataService } from '../../core/services/mock-data.service';
       .mini-section { margin-top: 18px; }
       .mini-section h3 { margin: 0 0 10px; }
       .attendance-list, .diary-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-      .attendance-list li, .diary-list li { display: flex; justify-content: space-between; gap: 8px; background: #f8fafc; border-radius: 10px; padding: 10px 12px; }
+      .attendance-list li, .diary-list li { display: flex; justify-content: space-between; gap: 8px; background: #f8fafc; border-radius: 10px; padding: 10px 12px; transition: background 0.15s ease; }
+      .attendance-list li:hover, .diary-list li:hover { background: #eef2ff; }
       .diary-list a { text-decoration: none; color: inherit; font-weight: 600; }
       .diary-list small { color: #64748b; }
       @media (max-width: 640px) { .summary-row { grid-template-columns: 1fr; } }

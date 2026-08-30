@@ -69,7 +69,8 @@ import { MockDataService } from '../../core/services/mock-data.service';
       .ring::before { content: ''; position: absolute; inset: 14px; border-radius: 50%; background: white; }
       .ring div { position: relative; z-index: 1; font-weight: 800; }
       .list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
-      .list li { display: flex; justify-content: space-between; background: #f8fafc; padding: 10px 12px; border-radius: 10px; }
+      .list li { display: flex; justify-content: space-between; background: #f8fafc; padding: 10px 12px; border-radius: 10px; transition: background 0.15s ease; }
+      .list li:hover { background: #eef2ff; }
       .ghost-link { color: #4f46e5; font-weight: 700; text-decoration: none; }
       @media (max-width: 640px) { .profile-grid { grid-template-columns: 1fr; } }
     `,
