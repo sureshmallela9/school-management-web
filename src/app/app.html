@@ -41,7 +41,12 @@
       >Students</a
     >
     <a routerLink="/app/bus" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Bus</a>
-    <a routerLink="/app/attendance" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Attendance</a>
+    <a
+      [routerLink]="isAdmin() ? '/admin/attendance' : isTeacher() ? '/teacher/attendance/mark' : '/app/attendance'"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: false }"
+      >Attendance</a
+    >
     <a routerLink="/app/notifications" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Notices</a>
   </nav>
 </div>

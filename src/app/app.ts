@@ -20,11 +20,12 @@ export class App {
     const roles = this.currentUser()?.roles ?? [];
     return roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPERADMIN');
   });
+  readonly isTeacher = computed(() => (this.currentUser()?.roles ?? []).includes('ROLE_TEACHER'));
 
   readonly navItems = computed(() => [
     { label: 'Home', path: '/app/home' },
     { label: 'Students', path: this.isAdmin() ? '/admin/students' : '/app/students' },
-    { label: 'Attendance', path: '/app/attendance' },
+    { label: 'Attendance', path: this.isAdmin() ? '/admin/attendance' : this.isTeacher() ? '/teacher/attendance/mark' : '/app/attendance' },
     { label: 'Bus', path: '/app/bus' },
     { label: 'Notices', path: '/app/notifications' },
   ]);

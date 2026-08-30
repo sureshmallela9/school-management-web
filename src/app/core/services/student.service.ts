@@ -140,7 +140,10 @@ export class StudentService {
 
   getMyStudents(tenantId: string, page = 1, limit = 10): Observable<PaginatedResponse<Student>> {
     const currentUserId = this.authService.getUserId() ?? 'parent-1';
-    const filtered = this.mockStudents.filter((student) => student.tenantId === (tenantId || this.getTenantId()) && student.parentId === currentUserId);
+    const knownParentIds = new Set(this.mockStudents.map((student) => student.parentId));
+    // mock login IDs (e.g. "user-parent-example-com") don't match seeded parentId values, so fall back to demo data
+    const effectiveParentId = knownParentIds.has(currentUserId) ? currentUserId : 'parent-1';
+    const filtered = this.mockStudents.filter((student) => student.tenantId === (tenantId || this.getTenantId()) && student.parentId === effectiveParentId);
     const start = (page - 1) * limit;
     const data = filtered.slice(start, start + limit);
 
