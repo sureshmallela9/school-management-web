@@ -9,8 +9,20 @@
     </div>
 
     <nav class="desktop-nav" aria-label="Primary navigation">
-      <a *ngFor="let item of navItems" [routerLink]="item.path">{{ item.label }}</a>
-      <a routerLink="/admin/tenants">Admin</a>
+      <a
+        *ngFor="let item of navItems()"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: false }"
+        >{{ item.label }}</a
+      >
+      <a
+        *ngIf="isAdmin()"
+        routerLink="/admin/tenants"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: false }"
+        >Admin</a
+      >
     </nav>
 
     <button class="logout-btn" type="button" (click)="logout()">Logout</button>
@@ -21,10 +33,15 @@
   </main>
 
   <nav class="bottom-nav" *ngIf="isAuthenticated()" aria-label="Mobile navigation">
-    <a routerLink="/app/home">Home</a>
-    <a routerLink="/app/students">Students</a>
-    <a routerLink="/app/bus">Bus</a>
-    <a routerLink="/app/attendance">Attendance</a>
-    <a routerLink="/app/notifications">Notices</a>
+    <a routerLink="/app/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Home</a>
+    <a
+      [routerLink]="isAdmin() ? '/admin/students' : '/app/students'"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: false }"
+      >Students</a
+    >
+    <a routerLink="/app/bus" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Bus</a>
+    <a routerLink="/app/attendance" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Attendance</a>
+    <a routerLink="/app/notifications" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Notices</a>
   </nav>
 </div>

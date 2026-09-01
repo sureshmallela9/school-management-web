@@ -42,8 +42,9 @@ import { MockDataService } from '../../core/services/mock-data.service';
       .list-card { background: white; border-radius: 22px; padding: 18px; box-shadow: 0 10px 24px rgba(15,23,42,0.06); }
       .filter-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: #f8fafc; border-radius: 12px; padding: 12px; margin-bottom: 14px; }
       select { padding: 10px 12px; border: 1px solid #dfe7f5; border-radius: 10px; }
-      .attendance-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #edf2f7; }
+      .attendance-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: 10px; border-bottom: 1px solid #edf2f7; transition: background 0.15s ease; }
       .attendance-item:last-child { border-bottom: none; }
+      .attendance-item:hover { background: #f8fafc; }
       .attendance-item small { display: block; color: #64748b; margin-top: 4px; }
       .status { padding: 6px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
       .status.present { background: #dcfce7; color: #166534; }

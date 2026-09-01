@@ -9,8 +9,11 @@ import { FeeDashboardComponent } from './features/fees/fee-dashboard.component';
 import { NotificationsComponent } from './features/notifications/notifications.component';
 import { LeaveRequestsComponent } from './features/leave-requests/leave-requests.component';
 import { ParentDashboardComponent } from './features/parent/parent-dashboard.component';
-import { StudentDetailComponent } from './features/students/student-detail.component';
-import { StudentListComponent } from './features/students/student-list.component';
+import { StudentDetailComponent as ParentStudentDetailComponent } from './features/students/student-detail.component';
+import { StudentListComponent as ParentStudentListComponent } from './features/students/student-list.component';
+import { StudentListComponent as AdminStudentListComponent } from './features/student/student-list.component';
+import { StudentDetailComponent as AdminStudentDetailComponent } from './features/student/student-detail.component';
+import { StudentFormComponent } from './features/student/student-form.component';
 import { SchoolListComponent } from './features/admin/school-list.component';
 import { TenantListComponent } from './features/admin/tenant-list.component';
 import { UserListComponent } from './features/admin/user-list.component';
@@ -22,8 +25,8 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: 'home', component: ParentDashboardComponent },
-      { path: 'students', component: StudentListComponent },
-      { path: 'students/:id', component: StudentDetailComponent },
+      { path: 'students', component: ParentStudentListComponent },
+      { path: 'students/:id', component: ParentStudentDetailComponent },
       { path: 'attendance', component: AttendanceListComponent },
       { path: 'daily-diary', component: DailyDiaryComponent },
       { path: 'fees', component: FeeDashboardComponent },
@@ -41,6 +44,10 @@ export const routes: Routes = [
       { path: 'tenants', component: TenantListComponent },
       { path: 'schools', component: SchoolListComponent },
       { path: 'users', component: UserListComponent },
+      { path: 'students', component: AdminStudentListComponent },
+      { path: 'students/create', component: StudentFormComponent },
+      { path: 'students/:id', component: AdminStudentDetailComponent },
+      { path: 'students/:id/edit', component: StudentFormComponent },
       { path: '', redirectTo: 'tenants', pathMatch: 'full' },
     ],
   },
