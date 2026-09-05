@@ -13,6 +13,7 @@ import { TeacherStudentHistoryComponent } from './features/attendance/teacher-st
 import { ParentAttendanceComponent } from './features/attendance/parent-attendance.component';
 import { LoginComponent } from './features/auth/login.component';
 import { DailyDiaryComponent } from './features/homework/daily-diary.component';
+import { TeacherHomeworkComponent } from './features/homework/teacher-homework.component';
 import { BusLocationComponent } from './features/bus/bus-location.component';
 import { FeeDashboardComponent } from './features/fees/fee-dashboard.component';
 import { FeeReportsComponent } from './features/fees/fee-reports.component';
@@ -80,6 +81,7 @@ export const routes: Routes = [
       { path: 'attendance/mark', component: TeacherMarkAttendanceComponent },
       { path: 'attendance/today', component: TeacherTodayAttendanceComponent },
       { path: 'attendance/student', component: TeacherStudentHistoryComponent },
+      { path: 'homework', component: TeacherHomeworkComponent },
       { path: 'fees', component: FeeDashboardComponent },
       { path: '', redirectTo: 'attendance/mark', pathMatch: 'full' },
     ],
