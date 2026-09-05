@@ -4,7 +4,9 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { AttendanceService } from '../../core/services/attendance.service';
+import { StudentService } from '../../core/services/student.service';
 import { ATTENDANCE_TYPES, AttendanceRequest } from '../../core/models/attendance.model';
+import { Student } from '../../core/models/student.model';
 
 @Component({
   selector: 'app-attendance-form',
@@ -22,12 +24,15 @@ import { ATTENDANCE_TYPES, AttendanceRequest } from '../../core/models/attendanc
       <form [formGroup]="attendanceForm" (ngSubmit)="submitForm()" class="card">
         <div class="grid">
           <label>
-            <span>Student ID</span>
-            <input formControlName="studentId" type="text" placeholder="student-1" />
+            <span>Student</span>
+            <select formControlName="studentId" (change)="onStudentChange()">
+              <option value="">Select a student</option>
+              <option *ngFor="let student of students" [value]="student.id">{{ student.name }} ({{ student.rollNumber }})</option>
+            </select>
           </label>
           <label>
             <span>Class ID</span>
-            <input formControlName="classId" type="text" placeholder="class-5" />
+            <input formControlName="classId" type="text" placeholder="auto-filled from student" />
           </label>
           <label>
             <span>Attendance Date</span>
@@ -78,6 +83,7 @@ import { ATTENDANCE_TYPES, AttendanceRequest } from '../../core/models/attendanc
 export class AttendanceFormComponent implements OnInit {
   attendanceForm: FormGroup;
   attendanceTypes = ATTENDANCE_TYPES;
+  students: Student[] = [];
   isEditMode = false;
   isSubmitting = false;
   errorMessage: string | null = null;
@@ -87,6 +93,7 @@ export class AttendanceFormComponent implements OnInit {
   constructor(
     private readonly fb: FormBuilder,
     private readonly attendanceService: AttendanceService,
+    private readonly studentService: StudentService,
     private readonly authService: AuthService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
@@ -101,7 +108,23 @@ export class AttendanceFormComponent implements OnInit {
     });
   }
 
+  onStudentChange(): void {
+    const student = this.students.find((s) => s.id === this.attendanceForm.value.studentId);
+    if (student) {
+      this.attendanceForm.patchValue({ classId: student.classId });
+    }
+  }
+
   ngOnInit(): void {
+    const tenantId = this.authService.getTenantId() ?? 'tenant-001';
+    this.studentService.getStudents(tenantId, 1, 200).subscribe({
+      next: (response) => {
+        this.students = response.data;
+        this.cdr.detectChanges();
+      },
+      error: () => this.cdr.detectChanges(),
+    });
+
     const id = this.route.snapshot.paramMap.get('id');
     this.recordId = id;
     this.isEditMode = !!id;
@@ -152,9 +175,9 @@ export class AttendanceFormComponent implements OnInit {
       }
       this.router.navigateByUrl('/admin/attendance');
     };
-    const handleError = () => {
+    const handleError = (err?: { error?: { message?: string }; message?: string }) => {
       this.isSubmitting = false;
-      this.errorMessage = 'Unable to save attendance record';
+      this.errorMessage = err?.error?.message || err?.message || 'Unable to save attendance record';
       this.cdr.detectChanges();
     };
 

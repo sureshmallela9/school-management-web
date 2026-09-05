@@ -4,7 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { AttendanceService } from '../../core/services/attendance.service';
+import { StudentService } from '../../core/services/student.service';
 import { AttendanceRecord, AttendanceSummary } from '../../core/models/attendance.model';
+import { Student } from '../../core/models/student.model';
 
 type ReportType = 'daily' | 'monthly' | 'yearly' | 'class' | 'student' | 'low-attendance' | 'percentage';
 
@@ -34,12 +36,18 @@ const REPORT_LABELS: Record<ReportType, string> = {
 
       <div class="filter-row">
         <label *ngIf="showClassId">
-          <span>Class ID</span>
-          <input type="text" [(ngModel)]="filters.classId" placeholder="class-5" />
+          <span>Class</span>
+          <select [(ngModel)]="filters.classId">
+            <option [ngValue]="undefined">All classes</option>
+            <option *ngFor="let cls of classOptions" [ngValue]="cls.id">{{ cls.name }}</option>
+          </select>
         </label>
         <label *ngIf="showStudentId">
-          <span>Student ID</span>
-          <input type="text" [(ngModel)]="filters.studentId" placeholder="student-1" />
+          <span>Student</span>
+          <select [(ngModel)]="filters.studentId">
+            <option value="">Select a student</option>
+            <option *ngFor="let student of students" [ngValue]="student.id">{{ student.name }} ({{ student.rollNumber }})</option>
+          </select>
         </label>
         <label *ngIf="showDate">
           <span>Date</span>
@@ -81,8 +89,8 @@ const REPORT_LABELS: Record<ReportType, string> = {
           </thead>
           <tbody>
             <tr *ngFor="let record of recordResults">
-              <td>{{ record.studentName || record.studentId }}</td>
-              <td>{{ record.className || record.classId }}</td>
+              <td>{{ studentLabel(record.studentId, record.studentName) }}</td>
+              <td>{{ classLabel(record.studentId, record.className, record.classId) }}</td>
               <td>{{ record.attendanceDate }}</td>
               <td>{{ record.attendanceType }}</td>
               <td>{{ record.remarks || '-' }}</td>
@@ -110,7 +118,7 @@ const REPORT_LABELS: Record<ReportType, string> = {
             </thead>
             <tbody>
               <tr *ngFor="let summary of summaryResults">
-                <td>{{ summary.studentName || summary.studentId }}</td>
+                <td>{{ studentLabel(summary.studentId, summary.studentName) }}</td>
                 <td>{{ summary.workingDays }}</td>
                 <td>{{ summary.presentDays }}</td>
                 <td>{{ summary.absentDays }}</td>
@@ -125,6 +133,8 @@ const REPORT_LABELS: Record<ReportType, string> = {
           </table>
         </div>
       </ng-template>
+
+      <p class="error-text" *ngIf="errorMessage">{{ errorMessage }}</p>
     </section>
   `,
   styles: [
@@ -146,6 +156,7 @@ const REPORT_LABELS: Record<ReportType, string> = {
       tbody tr:hover { background: #f8fafc; }
       td.low { color: #991b1b; font-weight: 700; }
       .empty-cell { text-align: center; color: #64748b; padding: 24px; }
+      .error-text { color: #b91c1c; font-weight: 600; margin: 0; }
     `,
   ],
 })
@@ -155,6 +166,10 @@ export class AttendanceReportComponent implements OnInit {
   recordResults: AttendanceRecord[] = [];
   summaryResults: AttendanceSummary[] = [];
   isRecordReport = true;
+  errorMessage: string | null = null;
+  students: Student[] = [];
+  classOptions: { id: string; name: string }[] = [];
+  private studentMap = new Map<string, Student>();
 
   filters: { classId?: string; studentId?: string; date?: string; fromDate?: string; toDate?: string; month?: number; year?: number; threshold?: number } = {
     date: new Date().toISOString().slice(0, 10),
@@ -165,6 +180,7 @@ export class AttendanceReportComponent implements OnInit {
 
   constructor(
     private readonly attendanceService: AttendanceService,
+    private readonly studentService: StudentService,
     private readonly authService: AuthService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
@@ -175,7 +191,28 @@ export class AttendanceReportComponent implements OnInit {
     this.reportType = (this.route.snapshot.paramMap.get('type') as ReportType) ?? 'daily';
     this.label = REPORT_LABELS[this.reportType] ?? 'Report';
     this.isRecordReport = this.reportType === 'daily' || this.reportType === 'class' || this.reportType === 'student';
+
+    const tenantId = this.authService.getTenantId() ?? 'tenant-001';
+    this.studentService.getStudents(tenantId, 1, 200).subscribe({
+      next: (response) => {
+        this.students = response.data;
+        this.studentMap = new Map(this.students.map((student) => [student.id, student]));
+        const uniqueClasses = new Map(this.students.map((student) => [student.classId, student.className || student.classId]));
+        this.classOptions = Array.from(uniqueClasses, ([id, name]) => ({ id, name }));
+        this.cdr.detectChanges();
+      },
+      error: () => this.cdr.detectChanges(),
+    });
+
     this.runReport();
+  }
+
+  studentLabel(studentId: string, studentName?: string): string {
+    return studentName || this.studentMap.get(studentId)?.name || studentId;
+  }
+
+  classLabel(studentId: string, className?: string, classId?: string): string {
+    return className || this.studentMap.get(studentId)?.className || classId || '-';
   }
 
   get showClassId(): boolean {
@@ -207,6 +244,7 @@ export class AttendanceReportComponent implements OnInit {
   }
 
   runReport(): void {
+    this.errorMessage = null;
     const tenantId = this.authService.getTenantId() ?? 'tenant-001';
     const { classId, studentId, date, fromDate, toDate, month, year, threshold } = this.filters;
 
@@ -215,9 +253,17 @@ export class AttendanceReportComponent implements OnInit {
         this.attendanceService.getDailyReport(tenantId, date ?? new Date().toISOString().slice(0, 10), classId).subscribe(this.recordHandler());
         break;
       case 'class':
+        if (!classId) {
+          this.errorMessage = 'Select a class before running the class report.';
+          return;
+        }
         this.attendanceService.getClassReport(classId ?? '', tenantId, fromDate, toDate).subscribe(this.recordHandler());
         break;
       case 'student':
+        if (!studentId) {
+          this.errorMessage = 'Select a student before running the student report.';
+          return;
+        }
         this.attendanceService.getStudentReport(studentId ?? '', tenantId, fromDate, toDate).subscribe(this.recordHandler());
         break;
       case 'monthly':
@@ -241,8 +287,9 @@ export class AttendanceReportComponent implements OnInit {
         this.recordResults = response.data;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err: { error?: { message?: string }; message?: string }) => {
         this.recordResults = [];
+        this.errorMessage = err?.error?.message || err?.message || 'Unable to load report';
         this.cdr.detectChanges();
       },
     };
@@ -254,8 +301,9 @@ export class AttendanceReportComponent implements OnInit {
         this.summaryResults = response.data;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err: { error?: { message?: string }; message?: string }) => {
         this.summaryResults = [];
+        this.errorMessage = err?.error?.message || err?.message || 'Unable to load report';
         this.cdr.detectChanges();
       },
     };

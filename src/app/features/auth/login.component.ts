@@ -12,8 +12,8 @@ import { AuthService } from '../../core/services/auth.service';
     <section class="login-shell">
       <div class="login-card">
         <div class="brand-block">
-          <div class="brand-badge">SM</div>
-          <h1>SchoolManagementUI</h1>
+          <div class="brand-badge">QS</div>
+          <h1>QSchool</h1>
           <p>Secure, mobile-first school operations dashboard.</p>
         </div>
 

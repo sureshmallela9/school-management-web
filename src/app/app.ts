@@ -26,6 +26,7 @@ export class App {
     { label: 'Home', path: '/app/home' },
     { label: 'Students', path: this.isAdmin() ? '/admin/students' : '/app/students' },
     { label: 'Attendance', path: this.isAdmin() ? '/admin/attendance' : this.isTeacher() ? '/teacher/attendance/mark' : '/app/attendance' },
+    { label: 'Fees', path: this.isAdmin() ? '/admin/fees' : this.isTeacher() ? '/teacher/fees' : '/app/fees' },
     { label: 'Bus', path: '/app/bus' },
     { label: 'Notices', path: '/app/notifications' },
   ]);

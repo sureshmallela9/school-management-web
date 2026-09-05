@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { AttendanceService } from '../../core/services/attendance.service';
+import { StudentService } from '../../core/services/student.service';
 import { AttendanceDashboard } from '../../core/models/attendance.model';
 
 @Component({
@@ -54,7 +55,7 @@ import { AttendanceDashboard } from '../../core/models/attendance.model';
         <h2>Students below 75% attendance</h2>
         <ul class="alert-list" *ngIf="dashboard.studentsBelow75Percent.length; else noAlerts">
           <li *ngFor="let item of dashboard.studentsBelow75Percent">
-            <span>{{ item.studentId }}</span>
+            <span>{{ studentLabel(item.studentId) }}</span>
             <strong>{{ item.attendancePercentage }}%</strong>
           </li>
         </ul>
@@ -62,6 +63,8 @@ import { AttendanceDashboard } from '../../core/models/attendance.model';
           <p class="empty-text">No students are currently below the 75% attendance threshold.</p>
         </ng-template>
       </div>
+
+      <p class="error-text" *ngIf="errorMessage">{{ errorMessage }}</p>
     </section>
   `,
   styles: [
@@ -89,27 +92,46 @@ import { AttendanceDashboard } from '../../core/models/attendance.model';
       .alert-list li:hover { background: #fee2e2; }
       .alert-list strong { color: #991b1b; }
       .empty-text { color: #64748b; margin: 0; }
+      .error-text { color: #b91c1c; font-weight: 600; margin: 0; }
     `,
   ],
 })
 export class AttendanceDashboardComponent implements OnInit {
   dashboard: AttendanceDashboard | null = null;
+  errorMessage: string | null = null;
+  private studentNames = new Map<string, string>();
 
   constructor(
     private readonly attendanceService: AttendanceService,
+    private readonly studentService: StudentService,
     private readonly authService: AuthService,
     private readonly router: Router,
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
+  studentLabel(studentId: string): string {
+    return this.studentNames.get(studentId) || studentId;
+  }
+
   ngOnInit(): void {
     const tenantId = this.authService.getTenantId() ?? 'tenant-001';
+    this.studentService.getStudents(tenantId, 1, 200).subscribe({
+      next: (response) => {
+        this.studentNames = new Map(response.data.map((student) => [student.id, student.name]));
+        this.cdr.detectChanges();
+      },
+      error: () => this.cdr.detectChanges(),
+    });
+
     this.attendanceService.getDashboard(tenantId).subscribe({
       next: (response) => {
         this.dashboard = response.data;
         this.cdr.detectChanges();
       },
-      error: () => this.cdr.detectChanges(),
+      error: (err) => {
+        this.errorMessage = err?.error?.message || err?.message || 'Unable to load dashboard';
+        this.cdr.detectChanges();
+      },
     });
   }
 

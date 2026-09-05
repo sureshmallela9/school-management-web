@@ -4,7 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { AttendanceService } from '../../core/services/attendance.service';
+import { StudentService } from '../../core/services/student.service';
 import { ATTENDANCE_TYPES, AttendanceRecord, AttendanceType } from '../../core/models/attendance.model';
+import { Student } from '../../core/models/student.model';
 
 @Component({
   selector: 'app-attendance-list',
@@ -28,11 +30,17 @@ import { ATTENDANCE_TYPES, AttendanceRecord, AttendanceType } from '../../core/m
       <div class="filter-row">
         <label>
           <span>Class</span>
-          <input type="text" [(ngModel)]="filters.classId" placeholder="class-5" (ngModelChange)="onFilterChange()" />
+          <select [(ngModel)]="filters.classId" (ngModelChange)="onFilterChange()">
+            <option [ngValue]="undefined">All classes</option>
+            <option *ngFor="let cls of classOptions" [ngValue]="cls.id">{{ cls.name }}</option>
+          </select>
         </label>
         <label>
           <span>Student</span>
-          <input type="text" [(ngModel)]="filters.studentId" placeholder="student-1" (ngModelChange)="onFilterChange()" />
+          <select [(ngModel)]="filters.studentId" (ngModelChange)="onFilterChange()">
+            <option [ngValue]="undefined">All students</option>
+            <option *ngFor="let student of students" [ngValue]="student.id">{{ student.name }} ({{ student.rollNumber }})</option>
+          </select>
         </label>
         <label>
           <span>Date</span>
@@ -61,8 +69,8 @@ import { ATTENDANCE_TYPES, AttendanceRecord, AttendanceType } from '../../core/m
           </thead>
           <tbody>
             <tr *ngFor="let record of records">
-              <td>{{ record.studentName || record.studentId }}</td>
-              <td>{{ record.className || record.classId }}</td>
+              <td>{{ studentLabel(record) }}</td>
+              <td>{{ classLabel(record) }}</td>
               <td>{{ record.attendanceDate }}</td>
               <td><span class="status-pill" [class]="record.attendanceType.toLowerCase()">{{ record.attendanceType }}</span></td>
               <td>{{ record.remarks || '-' }}</td>
@@ -123,6 +131,9 @@ import { ATTENDANCE_TYPES, AttendanceRecord, AttendanceType } from '../../core/m
 })
 export class AttendanceListComponent implements OnInit {
   records: AttendanceRecord[] = [];
+  students: Student[] = [];
+  classOptions: { id: string; name: string }[] = [];
+  private studentMap = new Map<string, Student>();
   attendanceTypes = ATTENDANCE_TYPES;
   filters: { classId?: string; studentId?: string; attendanceDate?: string; attendanceType?: AttendanceType } = {};
   page = 1;
@@ -131,13 +142,37 @@ export class AttendanceListComponent implements OnInit {
 
   constructor(
     private readonly attendanceService: AttendanceService,
+    private readonly studentService: StudentService,
     private readonly authService: AuthService,
     private readonly router: Router,
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
+    this.loadStudents();
     this.loadRecords();
+  }
+
+  studentLabel(record: AttendanceRecord): string {
+    return record.studentName || this.studentMap.get(record.studentId)?.name || record.studentId;
+  }
+
+  classLabel(record: AttendanceRecord): string {
+    return record.className || this.studentMap.get(record.studentId)?.className || record.classId;
+  }
+
+  private loadStudents(): void {
+    const tenantId = this.authService.getTenantId() ?? 'tenant-001';
+    this.studentService.getStudents(tenantId, 1, 200).subscribe({
+      next: (response) => {
+        this.students = response.data;
+        this.studentMap = new Map(this.students.map((student) => [student.id, student]));
+        const uniqueClasses = new Map(this.students.map((student) => [student.classId, student.className || student.classId]));
+        this.classOptions = Array.from(uniqueClasses, ([id, name]) => ({ id, name }));
+        this.cdr.detectChanges();
+      },
+      error: () => this.cdr.detectChanges(),
+    });
   }
 
   onFilterChange(): void {
@@ -167,7 +202,10 @@ export class AttendanceListComponent implements OnInit {
     const tenantId = this.authService.getTenantId() ?? 'tenant-001';
     this.attendanceService.deleteAttendance(record.id, tenantId).subscribe({
       next: () => this.loadRecords(),
-      error: () => this.cdr.detectChanges(),
+      error: (err) => {
+        window.alert(err?.error?.message || err?.message || 'Unable to delete attendance record');
+        this.cdr.detectChanges();
+      },
     });
   }
 

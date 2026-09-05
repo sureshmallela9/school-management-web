@@ -53,8 +53,16 @@ import { AttendanceAudit } from '../../core/models/attendance.model';
               <td><span class="badge" [class]="log.action.toLowerCase()">{{ log.action }}</span></td>
               <td>{{ log.changedBy }}</td>
               <td>{{ log.changedAt | date:'medium' }}</td>
-              <td>{{ log.previousValue || '-' }}</td>
-              <td>{{ log.newValue || '-' }}</td>
+              <td>
+                <div class="audit-value" *ngFor="let field of formatValue(log.previousValue)">
+                  <strong *ngIf="field.key">{{ field.key }}</strong><span>{{ field.value }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="audit-value" *ngFor="let field of formatValue(log.newValue)">
+                  <strong *ngIf="field.key">{{ field.key }}</strong><span>{{ field.value }}</span>
+                </div>
+              </td>
             </tr>
             <tr *ngIf="!logs.length">
               <td colspan="6" class="empty-cell">No audit entries found.</td>
@@ -84,8 +92,13 @@ import { AttendanceAudit } from '../../core/models/attendance.model';
       table { width: 100%; border-collapse: collapse; }
       th, td { padding: 14px 12px; border-bottom: 1px solid #edf2f7; text-align: left; }
       th { background: #f8fafc; }
+      td:nth-child(5), td:nth-child(6) { min-width: 240px; max-width: 360px; vertical-align: top; }
       tbody tr { transition: background 0.15s ease; }
       tbody tr:hover { background: #f8fafc; }
+      .audit-value { display: flex; gap: 7px; line-height: 1.4; overflow-wrap: anywhere; }
+      .audit-value + .audit-value { margin-top: 5px; }
+      .audit-value strong { color: #475569; font-size: 0.76rem; white-space: nowrap; }
+      .audit-value span { color: #334155; font-size: 0.82rem; }
       .empty-cell { text-align: center; color: #64748b; padding: 24px; }
       .badge { padding: 6px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; background: #f1f5f9; color: #334155; }
       .badge.create { background: #dcfce7; color: #166534; }
@@ -127,6 +140,42 @@ export class AttendanceAuditComponent implements OnInit {
 
   goTo(path: string): void {
     this.router.navigateByUrl(path);
+  }
+
+  formatValue(value: string | null): { key: string; value: string }[] {
+    if (!value) {
+      return [{ key: '', value: '-' }];
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return Object.entries(parsed as Record<string, unknown>).map(([key, item]) => ({
+          key: this.formatKey(key),
+          value: this.formatFieldValue(item),
+        }));
+      }
+      return [{ key: '', value: this.formatFieldValue(parsed) }];
+    } catch {
+      return [{ key: '', value }];
+    }
+  }
+
+  private formatKey(key: string): string {
+    return key
+      .replace(/[A-Z]/g, (letter) => ` ${letter}`)
+      .replace(/^./, (letter) => letter.toUpperCase())
+      .trim();
+  }
+
+  private formatFieldValue(value: unknown): string {
+    if (value === null || value === undefined || value === '') {
+      return '-';
+    }
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+    return String(value);
   }
 
   private loadLogs(): void {

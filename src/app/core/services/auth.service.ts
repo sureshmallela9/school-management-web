@@ -47,6 +47,7 @@ export class AuthService {
           name: user.name,
           email: user.email,
           tenantId: user.tenantId,
+          schoolId: user.school?.id,
           // backend roles are sometimes plain ("ADMIN") and sometimes pre-prefixed ("ROLE_ADMIN") - normalize
           roles: user.roles.map((role) => (role.startsWith('ROLE_') ? role : `ROLE_${role}`)),
         };
@@ -92,6 +93,10 @@ export class AuthService {
 
   getUserId(): string | null {
     return this.getCurrentUser()?.id ?? null;
+  }
+
+  getSchoolId(): string | null {
+    return this.getCurrentUser()?.schoolId ?? null;
   }
 
   getRoles(): string[] {

@@ -15,7 +15,7 @@ import { MockDataService } from '../../core/services/mock-data.service';
           <p class="eyebrow">Parent dashboard</p>
           <h1>Overview</h1>
         </div>
-        <button type="button" class="accent-btn">View reports</button>
+        <a class="accent-btn" routerLink="/app/attendance">View reports</a>
       </header>
 
       <div class="stats-grid" *ngIf="dashboard">
@@ -89,7 +89,7 @@ import { MockDataService } from '../../core/services/mock-data.service';
       .page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
       .eyebrow { margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.72rem; color: #4f46e5; font-weight: 700; }
       h1 { margin: 0; font-size: clamp(2rem, 3vw, 2.5rem); }
-      .accent-btn { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none; border-radius: 12px; padding: 12px 16px; font-weight: 700; }
+      .accent-btn { display: inline-block; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none; border-radius: 12px; padding: 12px 16px; font-weight: 700; text-decoration: none; }
       .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; }
       .stat-card { background: white; padding: 18px; border-radius: 18px; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06); }
       .stat-card span { display: block; color: #64748b; margin-bottom: 12px; }

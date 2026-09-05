@@ -75,6 +75,7 @@ export interface UserDto {
   email: string;
   tenantId: string;
   roles: string[];
+  schoolId?: string;
 }
 
 export interface TenantDto {
