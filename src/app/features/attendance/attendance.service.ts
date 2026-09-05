@@ -12,9 +12,9 @@ import {
   AuditFilters,
   PaginatedResponse,
   YearlySummary,
-} from '../models/attendance.model';
-import { AuthService } from './auth.service';
-import { API_BASE_URL } from '../api-config';
+} from './attendance.model';
+import { AuthService } from '../../core/services/auth.service';
+import { API_BASE_URL } from '../../core/api-config';
 
 const V1 = `${API_BASE_URL}/api/v1`;
 

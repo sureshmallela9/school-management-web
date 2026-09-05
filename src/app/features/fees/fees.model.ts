@@ -1,4 +1,4 @@
-import { ApiResponse, PaginatedResponse } from './student.model';
+import { ApiResponse, PaginatedResponse } from '../../core/models/student.model';
 
 export interface StudentFeeLedger {
   id: string;

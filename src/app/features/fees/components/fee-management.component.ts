@@ -12,9 +12,9 @@ import {
   FeeTerm,
   FeeTermRequest,
   StudentFeeLedger,
-} from '../../core/models/fee.model';
-import { AuthService } from '../../core/services/auth.service';
-import { FeeService } from '../../core/services/fee.service';
+} from '../fees.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { FeeService } from '../fees.service';
 
 type FeeTab = 'years' | 'categories' | 'terms' | 'structures' | 'assignments' | 'ledger' | 'receipts';
 

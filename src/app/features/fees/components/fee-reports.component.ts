@@ -2,9 +2,9 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { FeeService } from '../../core/services/fee.service';
-import { AuthService } from '../../core/services/auth.service';
-import { StudentFeeLedger } from '../../core/models/fee.model';
+import { FeeService } from '../fees.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { StudentFeeLedger } from '../fees.model';
 
 type FeeReportType = 'paid' | 'outstanding' | 'overdue';
 

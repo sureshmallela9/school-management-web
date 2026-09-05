@@ -1,23 +1,25 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
-import { AttendanceListComponent } from './features/attendance/attendance-list.component';
-import { AttendanceFormComponent } from './features/attendance/attendance-form.component';
-import { AttendanceDashboardComponent } from './features/attendance/attendance-dashboard.component';
-import { AttendanceAuditComponent } from './features/attendance/attendance-audit.component';
-import { AttendanceReportsHubComponent } from './features/attendance/attendance-reports-hub.component';
-import { AttendanceReportComponent } from './features/attendance/attendance-report.component';
-import { TeacherMarkAttendanceComponent } from './features/attendance/teacher-mark-attendance.component';
-import { TeacherTodayAttendanceComponent } from './features/attendance/teacher-today-attendance.component';
-import { TeacherStudentHistoryComponent } from './features/attendance/teacher-student-history.component';
-import { ParentAttendanceComponent } from './features/attendance/parent-attendance.component';
+import { AttendanceListComponent } from './features/attendance/components/attendance-list.component';
+import { AttendanceFormComponent } from './features/attendance/components/attendance-form.component';
+import { AttendanceDashboardComponent } from './features/attendance/components/attendance-dashboard.component';
+import { AttendanceAuditComponent } from './features/attendance/components/attendance-audit.component';
+import { AttendanceReportsHubComponent } from './features/attendance/components/attendance-reports-hub.component';
+import { AttendanceReportComponent } from './features/attendance/components/attendance-report.component';
+import { TeacherMarkAttendanceComponent } from './features/attendance/components/teacher-mark-attendance.component';
+import { TeacherTodayAttendanceComponent } from './features/attendance/components/teacher-today-attendance.component';
+import { TeacherStudentHistoryComponent } from './features/attendance/components/teacher-student-history.component';
+import { ParentAttendanceComponent } from './features/attendance/components/parent-attendance.component';
 import { LoginComponent } from './features/auth/login.component';
 import { DailyDiaryComponent } from './features/homework/daily-diary.component';
 import { TeacherHomeworkComponent } from './features/homework/teacher-homework.component';
 import { BusLocationComponent } from './features/bus/bus-location.component';
-import { FeeDashboardComponent } from './features/fees/fee-dashboard.component';
-import { FeeReportsComponent } from './features/fees/fee-reports.component';
-import { FeeManagementComponent } from './features/fees/fee-management.component';
+import { FeeDashboardComponent } from './features/fees/components/fee-dashboard.component';
+import { FeeReportsComponent } from './features/fees/components/fee-reports.component';
+import { FeeManagementComponent } from './features/fees/components/fee-management.component';
+import { FeeParentViewComponent } from './features/fees/components/fee-parent-view.component';
+import { FeeTeacherViewComponent } from './features/fees/components/fee-teacher-view.component';
 import { NotificationsComponent } from './features/notifications/notifications.component';
 import { LeaveRequestsComponent } from './features/leave-requests/leave-requests.component';
 import { ParentDashboardComponent } from './features/parent/parent-dashboard.component';
@@ -85,6 +87,52 @@ export const routes: Routes = [
       { path: 'fees', component: FeeDashboardComponent },
       { path: '', redirectTo: 'attendance/mark', pathMatch: 'full' },
     ],
+  },
+  // Flat aliases matching the fees/attendance module spec; each is role-guarded and reuses the
+  // same components already routed above under /admin, /teacher, /app.
+  {
+    path: 'fees',
+    canActivate: [roleGuard],
+    data: { roles: ['ROLE_ADMIN', 'ROLE_SUPERADMIN'] },
+    children: [
+      { path: '', component: FeeDashboardComponent },
+      { path: 'management', component: FeeManagementComponent },
+      { path: 'reports', component: FeeReportsComponent },
+    ],
+  },
+  {
+    path: 'fees/my-fees',
+    canActivate: [roleGuard],
+    data: { roles: ['ROLE_PARENT'] },
+    component: FeeParentViewComponent,
+  },
+  {
+    path: 'fees/class-status',
+    canActivate: [roleGuard],
+    data: { roles: ['ROLE_TEACHER'] },
+    component: FeeTeacherViewComponent,
+  },
+  {
+    path: 'attendance',
+    canActivate: [roleGuard],
+    data: { roles: ['ROLE_ADMIN', 'ROLE_SUPERADMIN'] },
+    children: [
+      { path: '', component: AttendanceDashboardComponent },
+      { path: 'admin', component: AttendanceListComponent },
+      { path: 'reports', component: AttendanceReportsHubComponent },
+    ],
+  },
+  {
+    path: 'attendance/mark',
+    canActivate: [roleGuard],
+    data: { roles: ['ROLE_TEACHER'] },
+    component: TeacherMarkAttendanceComponent,
+  },
+  {
+    path: 'attendance/my-attendance',
+    canActivate: [roleGuard],
+    data: { roles: ['ROLE_PARENT'] },
+    component: ParentAttendanceComponent,
   },
   { path: '', redirectTo: '/auth/login', pathMatch: 'full' },
   { path: '**', redirectTo: '/auth/login' },

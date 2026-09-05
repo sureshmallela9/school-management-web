@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FeeReceipt, StudentFeeLedger } from '../../core/models/fee.model';
-import { AuthService } from '../../core/services/auth.service';
-import { FeeService } from '../../core/services/fee.service';
-import { StudentService } from '../../core/services/student.service';
+import { FeeReceipt, StudentFeeLedger } from '../fees.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { FeeService } from '../fees.service';
+import { StudentService } from '../../../core/services/student.service';
 
 @Component({
   selector: 'app-fee-dashboard',

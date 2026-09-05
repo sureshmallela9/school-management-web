@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { AuthService } from '../../core/services/auth.service';
-import { AttendanceService } from '../../core/services/attendance.service';
-import { AttendanceRecord } from '../../core/models/attendance.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { AttendanceService } from '../attendance.service';
+import { AttendanceRecord } from '../attendance.model';
 
 @Component({
   selector: 'app-teacher-today-attendance',

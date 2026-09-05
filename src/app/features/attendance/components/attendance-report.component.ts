@@ -2,11 +2,11 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
-import { AttendanceService } from '../../core/services/attendance.service';
-import { StudentService } from '../../core/services/student.service';
-import { AttendanceRecord, AttendanceSummary } from '../../core/models/attendance.model';
-import { Student } from '../../core/models/student.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { AttendanceService } from '../attendance.service';
+import { StudentService } from '../../../core/services/student.service';
+import { AttendanceRecord, AttendanceSummary } from '../attendance.model';
+import { Student } from '../../../core/models/student.model';
 
 type ReportType = 'daily' | 'monthly' | 'yearly' | 'class' | 'student' | 'low-attendance' | 'percentage';
 

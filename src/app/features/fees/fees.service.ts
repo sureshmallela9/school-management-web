@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { API_BASE_URL } from '../api-config';
+import { API_BASE_URL } from '../../core/api-config';
 import {
   AcademicYear,
   ApiResponse,
@@ -22,8 +22,8 @@ import {
   PaginatedResponse,
   StudentFeeLedger,
   StudentFeeAssignmentRequest,
-} from '../models/fee.model';
-import { AuthService } from './auth.service';
+} from './fees.model';
+import { AuthService } from '../../core/services/auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class FeeService {

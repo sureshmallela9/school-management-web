@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../../core/services/auth.service';
-import { AttendanceService } from '../../core/services/attendance.service';
-import { StudentService } from '../../core/services/student.service';
-import { AttendanceRecord, AttendanceSummary, YearlySummary } from '../../core/models/attendance.model';
-import { Student } from '../../core/models/student.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { AttendanceService } from '../attendance.service';
+import { StudentService } from '../../../core/services/student.service';
+import { AttendanceRecord, AttendanceSummary, YearlySummary } from '../attendance.model';
+import { Student } from '../../../core/models/student.model';
 
 @Component({
   selector: 'app-parent-attendance',

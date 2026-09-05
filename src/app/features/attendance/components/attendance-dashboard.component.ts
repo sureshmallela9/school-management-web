@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
-import { AttendanceService } from '../../core/services/attendance.service';
-import { StudentService } from '../../core/services/student.service';
-import { AttendanceDashboard } from '../../core/models/attendance.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { AttendanceService } from '../attendance.service';
+import { StudentService } from '../../../core/services/student.service';
+import { AttendanceDashboard } from '../attendance.model';
 
 @Component({
   selector: 'app-attendance-dashboard',
