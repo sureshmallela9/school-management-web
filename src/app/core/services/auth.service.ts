@@ -1,14 +1,24 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
 import { BehaviorSubject, Observable, map, tap } from 'rxjs';
-import { JwtPayload, UserDto } from '../models';
+import { UserDto } from '../models';
 import { API_BASE_URL } from '../api-config';
+
+interface AuthResponseUser {
+  id: string;
+  name: string;
+  email: string;
+  roles: string[];
+  tenantId: string;
+  school?: { id: string; name: string; code: string; address?: string };
+}
 
 interface AuthApiResponse {
   success: boolean;
-  data: { accessToken: string; user: { id: string; name: string; email: string; tenantId: string; roles: string[] } } | null;
+  data: { accessToken: string; refreshToken: string; user: AuthResponseUser } | null;
   message: string;
   error: string | null;
+  code: number | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -23,23 +33,27 @@ export class AuthService {
 
   constructor(private readonly http: HttpClient) {}
 
-  login(email: string, password: string): Observable<{ token: string }> {
-    return this.http.post<AuthApiResponse>(`${API_BASE_URL}/api/auth/login`, { username: email.trim(), password }).pipe(
+  login(username: string, password: string): Observable<{ token: string }> {
+    return this.http.post<AuthApiResponse>(`${API_BASE_URL}/api/auth/login`, { username: username.trim(), password }).pipe(
       map((response) => {
         if (!response.success || !response.data) {
           throw new Error(response.message || 'Login failed');
         }
-        const user: UserDto = {
-          id: response.data.user.id,
-          name: response.data.user.name,
-          email: response.data.user.email,
-          tenantId: response.data.user.tenantId,
-          roles: response.data.user.roles.map((role) => role.startsWith('ROLE_') ? role : `ROLE_${role}`),
-        };
-        return { token: response.data.accessToken, user };
+        return response.data;
       }),
-      tap(({ token, user }) => this.setToken(token, user)),
-      map(({ token }) => ({ token })),
+      tap(({ accessToken, user }) => {
+        const mappedUser: UserDto = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          tenantId: user.tenantId,
+          schoolId: user.school?.id,
+          // backend roles are sometimes plain ("ADMIN") and sometimes pre-prefixed ("ROLE_ADMIN") - normalize
+          roles: user.roles.map((role) => (role.startsWith('ROLE_') ? role : `ROLE_${role}`)),
+        };
+        this.setToken(accessToken, mappedUser);
+      }),
+      map(({ accessToken }) => ({ token: accessToken })),
     );
   }
 
@@ -69,29 +83,24 @@ export class AuthService {
       return false;
     }
 
-    const payload = this.parseToken(token);
-    if (!payload.exp) {
-      return true;
-    }
-
-    return payload.exp > Math.floor(Date.now() / 1000);
+    const exp = this.getTokenExpiry(token);
+    return exp === null || exp > Math.floor(Date.now() / 1000);
   }
 
   getTenantId(): string | null {
-    return this.getCurrentUser()?.tenantId ?? this.parseToken(this.getToken() ?? '').tenantId ?? null;
+    return this.getCurrentUser()?.tenantId ?? null;
   }
 
   getUserId(): string | null {
-    const token = this.getToken();
-    if (!token) {
-      return null;
-    }
-    return this.parseToken(token).userId ?? null;
+    return this.getCurrentUser()?.id ?? null;
+  }
+
+  getSchoolId(): string | null {
+    return this.getCurrentUser()?.schoolId ?? null;
   }
 
   getRoles(): string[] {
-    const roles = this.getCurrentUser()?.roles ?? this.parseToken(this.getToken() ?? '').roles ?? [];
-    return roles.map((role) => role.startsWith('ROLE_') ? role : `ROLE_${role}`);
+    return this.getCurrentUser()?.roles ?? [];
   }
 
   hasRole(role: string): boolean {
@@ -114,18 +123,17 @@ export class AuthService {
     }
   }
 
-  private parseToken(token: string): JwtPayload {
+  private getTokenExpiry(token: string): number | null {
     const parts = token.split('.');
     if (parts.length < 2) {
-      return { sub: '', roles: [] };
+      return null;
     }
-
     try {
       const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-      return payload as JwtPayload;
+      return typeof payload.exp === 'number' ? payload.exp : null;
     } catch {
-      return { sub: '', roles: [] };
+      return null;
     }
   }
-
 }
+
