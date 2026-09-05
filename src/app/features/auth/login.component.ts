@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -28,12 +28,14 @@ import { AuthService } from '../../core/services/auth.service';
             <input type="password" [(ngModel)]="password" name="password" placeholder="••••••••" required />
           </label>
 
-          <button type="submit" class="primary-btn">Sign in</button>
+          <p class="error-text" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+          <button type="submit" class="primary-btn" [disabled]="isSubmitting">{{ isSubmitting ? 'Signing in...' : 'Sign in' }}</button>
 
           <div class="demo-row">
-            <button type="button" class="ghost-btn" (click)="quickLogin('parent@example.com')">Parent</button>
-            <button type="button" class="ghost-btn" (click)="quickLogin('teacher@example.com')">Teacher</button>
-            <button type="button" class="ghost-btn" (click)="quickLogin('admin@example.com')">Admin</button>
+            <button type="button" class="ghost-btn" (click)="quickLogin('jane.parent@school.com')">Parent</button>
+            <button type="button" class="ghost-btn" (click)="quickLogin('jane.doe@northwood.com')">Teacher</button>
+            <button type="button" class="ghost-btn" (click)="quickLogin('admin@central.com')">Admin</button>
           </div>
         </form>
       </div>
@@ -144,16 +146,25 @@ import { AuthService } from '../../core/services/auth.service';
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;
       }
+
+      .error-text {
+        color: #b91c1c;
+        font-weight: 600;
+        margin: 0;
+      }
     `,
   ],
 })
 export class LoginComponent {
-  email = 'parent@example.com';
+  email = 'admin@central.com';
   password = 'password123';
+  isSubmitting = false;
+  errorMessage: string | null = null;
 
   constructor(
     private readonly authService: AuthService,
     private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   login(): void {
@@ -161,14 +172,22 @@ export class LoginComponent {
       return;
     }
 
+    this.isSubmitting = true;
+    this.errorMessage = null;
     this.authService.login(this.email, this.password).subscribe({
       next: () => {
         const roles = this.authService.getRoles();
-        const target = roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPERADMIN') ? '/admin' : '/app/home';
+        const target = roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPERADMIN')
+          ? '/admin'
+          : roles.includes('ROLE_TEACHER')
+            ? '/teacher'
+            : '/app/home';
         this.router.navigateByUrl(target);
       },
-      error: () => {
-        this.router.navigateByUrl('/app/home');
+      error: (err) => {
+        this.isSubmitting = false;
+        this.errorMessage = err?.error?.message || err?.message || 'Invalid email or password';
+        this.cdr.detectChanges();
       },
     });
   }

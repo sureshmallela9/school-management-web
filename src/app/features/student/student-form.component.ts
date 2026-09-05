@@ -193,9 +193,9 @@ export class StudentFormComponent implements OnInit {
           }
           this.router.navigateByUrl('/admin/students');
         },
-        error: () => {
+        error: (err) => {
           this.isSubmitting = false;
-          this.errorMessage = 'Unable to update student';
+          this.errorMessage = err?.error?.message || err?.message || 'Unable to update student';
           this.cdr.detectChanges();
         },
       });
@@ -216,9 +216,9 @@ export class StudentFormComponent implements OnInit {
         }
         this.router.navigateByUrl('/admin/students');
       },
-      error: () => {
+      error: (err) => {
         this.isSubmitting = false;
-        this.errorMessage = 'Unable to create student';
+        this.errorMessage = err?.error?.message || err?.message || 'Unable to create student';
         this.cdr.detectChanges();
       },
     });
