@@ -1,6 +1,15 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
+import { BehaviorSubject, Observable, map, tap } from 'rxjs';
 import { JwtPayload, UserDto } from '../models';
+import { API_BASE_URL } from '../api-config';
+
+interface AuthApiResponse {
+  success: boolean;
+  data: { accessToken: string; user: { id: string; name: string; email: string; tenantId: string; roles: string[] } } | null;
+  message: string;
+  error: string | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -12,34 +21,26 @@ export class AuthService {
   // reactive signal so components can react to login/logout without re-reading localStorage in a computed()
   readonly currentUserSignal = signal<UserDto | null>(this.getStoredUser());
 
+  constructor(private readonly http: HttpClient) {}
+
   login(email: string, password: string): Observable<{ token: string }> {
-    const normalizedEmail = email.trim().toLowerCase();
-    const role = normalizedEmail.includes('admin')
-      ? 'ROLE_ADMIN'
-      : normalizedEmail.includes('teacher')
-        ? 'ROLE_TEACHER'
-        : 'ROLE_PARENT';
-
-    const user: UserDto = {
-      id: `user-${normalizedEmail.replace(/[^a-z0-9]/g, '-')}`,
-      name: normalizedEmail.includes('admin') ? 'School Admin' : normalizedEmail.includes('teacher') ? 'Teacher User' : 'Parent User',
-      email: normalizedEmail,
-      tenantId: 'tenant-001',
-      roles: [role, 'ROLE_PARENT'].includes('ROLE_PARENT') && role !== 'ROLE_PARENT' ? [role] : [role],
-    };
-
-    const payload: JwtPayload = {
-      sub: user.email,
-      roles: user.roles,
-      tenantId: user.tenantId,
-      userId: user.id,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 8,
-    };
-
-    const token = this.encodeToken(payload);
-    this.setToken(token, user);
-    return of({ token });
+    return this.http.post<AuthApiResponse>(`${API_BASE_URL}/api/auth/login`, { username: email.trim(), password }).pipe(
+      map((response) => {
+        if (!response.success || !response.data) {
+          throw new Error(response.message || 'Login failed');
+        }
+        const user: UserDto = {
+          id: response.data.user.id,
+          name: response.data.user.name,
+          email: response.data.user.email,
+          tenantId: response.data.user.tenantId,
+          roles: response.data.user.roles.map((role) => role.startsWith('ROLE_') ? role : `ROLE_${role}`),
+        };
+        return { token: response.data.accessToken, user };
+      }),
+      tap(({ token, user }) => this.setToken(token, user)),
+      map(({ token }) => ({ token })),
+    );
   }
 
   logout(): void {
@@ -77,11 +78,7 @@ export class AuthService {
   }
 
   getTenantId(): string | null {
-    const token = this.getToken();
-    if (!token) {
-      return null;
-    }
-    return this.parseToken(token).tenantId ?? null;
+    return this.getCurrentUser()?.tenantId ?? this.parseToken(this.getToken() ?? '').tenantId ?? null;
   }
 
   getUserId(): string | null {
@@ -93,11 +90,8 @@ export class AuthService {
   }
 
   getRoles(): string[] {
-    const token = this.getToken();
-    if (!token) {
-      return [];
-    }
-    return this.parseToken(token).roles ?? [];
+    const roles = this.getCurrentUser()?.roles ?? this.parseToken(this.getToken() ?? '').roles ?? [];
+    return roles.map((role) => role.startsWith('ROLE_') ? role : `ROLE_${role}`);
   }
 
   hasRole(role: string): boolean {
@@ -134,9 +128,4 @@ export class AuthService {
     }
   }
 
-  private encodeToken(payload: JwtPayload): string {
-    const encodedHeader = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-    const encodedPayload = btoa(JSON.stringify(payload));
-    return `${encodedHeader}.${encodedPayload}.signature`;
-  }
 }

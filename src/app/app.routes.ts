@@ -6,6 +6,8 @@ import { LoginComponent } from './features/auth/login.component';
 import { DailyDiaryComponent } from './features/homework/daily-diary.component';
 import { BusLocationComponent } from './features/bus/bus-location.component';
 import { FeeDashboardComponent } from './features/fees/fee-dashboard.component';
+import { FeeReportsComponent } from './features/fees/fee-reports.component';
+import { FeeCategoryComponent } from './features/fees/fee-category.component';
 import { NotificationsComponent } from './features/notifications/notifications.component';
 import { LeaveRequestsComponent } from './features/leave-requests/leave-requests.component';
 import { ParentDashboardComponent } from './features/parent/parent-dashboard.component';
@@ -48,6 +50,11 @@ export const routes: Routes = [
       { path: 'students/create', component: StudentFormComponent },
       { path: 'students/:id', component: AdminStudentDetailComponent },
       { path: 'students/:id/edit', component: StudentFormComponent },
+      { path: 'fees', component: FeeDashboardComponent },
+      { path: 'fees/reports', component: FeeReportsComponent },
+      { path: 'fees/categories', component: FeeCategoryComponent },
+      { path: 'attendance/reports', component: AttendanceListComponent },
+      { path: 'attendance', component: AttendanceListComponent },
       { path: '', redirectTo: 'tenants', pathMatch: 'full' },
     ],
   },
