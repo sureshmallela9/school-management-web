@@ -32,6 +32,7 @@ import { StudentFeeLedger } from '../fees.model';
           <thead><tr><th>Student</th><th>Total</th><th>Paid</th><th>Outstanding</th><th>Status</th><th>Due date</th></tr></thead>
           <tbody>
             <tr *ngFor="let entry of ledger">
+              <!-- studentId shown raw: no teacher-safe "students in my class" endpoint exists to resolve a name -->
               <td>{{ entry.studentId }}</td>
               <td>{{ entry.totalAmount | currency:'INR':'symbol':'1.0-0' }}</td>
               <td>{{ entry.paidAmount | currency:'INR':'symbol':'1.0-0' }}</td>

@@ -15,6 +15,7 @@ import {
 } from '../fees.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { FeeService } from '../fees.service';
+import { FeeLookupService } from '../fee-lookup.service';
 
 type FeeTab = 'years' | 'categories' | 'terms' | 'structures' | 'assignments' | 'ledger' | 'receipts';
 
@@ -63,33 +64,42 @@ type FeeTab = 'years' | 'categories' | 'terms' | 'structures' | 'assignments' | 
       <section class="panel" *ngIf="activeTab === 'terms'">
         <div class="panel-heading"><div><p class="section-kicker">Fee terms</p><h2>When fees are due</h2></div><button class="primary-btn" type="button" (click)="saveTerm()">{{ editingTermId ? 'Update term' : 'Add term' }}</button></div>
         <form class="form-grid" (ngSubmit)="saveTerm()"><label>Academic year<select [(ngModel)]="termForm.academicYearId" name="termYear" required><option value="">Select year</option><option *ngFor="let year of academicYears" [value]="year.id">{{ year.name }}</option></select></label><label>Label<input [(ngModel)]="termForm.label" name="termLabel" required placeholder="Term 1" /></label><label>Frequency<select [(ngModel)]="termForm.frequency" name="termFrequency"><option>ANNUAL</option><option>SEMESTER</option><option>QUARTER</option><option>MONTHLY</option><option>CUSTOM</option></select></label><label>Start date<input type="date" [(ngModel)]="termForm.startDate" name="termStart" /></label><label>End date<input type="date" [(ngModel)]="termForm.endDate" name="termEnd" /></label></form>
-        <div class="table-wrap"><table><thead><tr><th>Label</th><th>Frequency</th><th>Academic year</th><th>Dates</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let term of terms"><td>{{ term.label }}</td><td>{{ term.frequency }}</td><td>{{ term.academicYearId }}</td><td>{{ term.startDate || '-' }} to {{ term.endDate || '-' }}</td><td><button type="button" (click)="editTerm(term)">Edit</button></td></tr><tr *ngIf="!terms.length"><td colspan="5" class="empty-cell">Select an academic year to load terms.</td></tr></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Label</th><th>Frequency</th><th>Academic year</th><th>Dates</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let term of terms"><td>{{ term.label }}</td><td>{{ term.frequency }}</td><td>{{ lookup.academicYearName(term.academicYearId) }}</td><td>{{ term.startDate || '-' }} to {{ term.endDate || '-' }}</td><td><button type="button" (click)="editTerm(term)">Edit</button></td></tr><tr *ngIf="!terms.length"><td colspan="5" class="empty-cell">Select an academic year to load terms.</td></tr></tbody></table></div>
       </section>
 
       <section class="panel" *ngIf="activeTab === 'structures'">
         <div class="panel-heading"><div><p class="section-kicker">Fee structures</p><h2>Amounts by class and term</h2></div><button class="primary-btn" type="button" (click)="saveStructure()">{{ editingStructureId ? 'Update structure' : 'Add structure' }}</button></div>
-        <form class="form-grid" (ngSubmit)="saveStructure()"><label>Academic year<select [(ngModel)]="structureForm.academicYearId" name="structureYear" required><option value="">Select year</option><option *ngFor="let year of academicYears" [value]="year.id">{{ year.name }}</option></select></label><label>Class ID<input [(ngModel)]="structureForm.classId" name="structureClass" required placeholder="class-grade10" /></label><label>Category<select [(ngModel)]="structureForm.feeCategoryId" name="structureCategory" required><option value="">Select category</option><option *ngFor="let category of categories" [value]="category.id">{{ category.name }}</option></select></label><label>Term<select [(ngModel)]="structureForm.feeTermId" name="structureTerm" required><option value="">Select term</option><option *ngFor="let term of terms" [value]="term.id">{{ term.label }}</option></select></label><label>Amount<input type="number" min="0" [(ngModel)]="structureForm.amount" name="structureAmount" required /></label><label>Due date<input type="date" [(ngModel)]="structureForm.dueDate" name="structureDue" required /></label></form>
-        <div class="table-wrap"><table><thead><tr><th>Class</th><th>Category</th><th>Amount</th><th>Due date</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let structure of structures"><td>{{ structure.classId }}</td><td>{{ structure.feeCategoryId }}</td><td>{{ structure.amount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ structure.dueDate }}</td><td class="actions"><button type="button" (click)="editStructure(structure)">Edit</button><button type="button" (click)="deleteStructure(structure)">Delete</button></td></tr><tr *ngIf="!structures.length"><td colspan="5" class="empty-cell">No fee structures found.</td></tr></tbody></table></div>
+        <form class="form-grid" (ngSubmit)="saveStructure()"><label>Academic year<select [(ngModel)]="structureForm.academicYearId" name="structureYear" required><option value="">Select year</option><option *ngFor="let year of academicYears" [value]="year.id">{{ year.name }}</option></select></label><label>Class ID<input [(ngModel)]="structureForm.classId" name="structureClass" required placeholder="class-grade10" /></label><label>Category<select [(ngModel)]="structureForm.feeCategoryId" name="structureCategory" required><option value="">Select category</option><option *ngFor="let category of categories" [value]="category.id">{{ category.name }}</option></select></label><label>Term<select [(ngModel)]="structureForm.feeTermId" name="structureTerm" required><option value="">Select term</option><option *ngFor="let term of terms" [value]="term.id">{{ term.label }}</option></select></label><label>Amount<input type="number" min="0.01" step="0.01" [(ngModel)]="structureForm.amount" name="structureAmount" required /></label><label>Due date<input type="date" [(ngModel)]="structureForm.dueDate" name="structureDue" required /></label></form>
+        <div class="table-wrap"><table><thead><tr><th>Class</th><th>Category</th><th>Amount</th><th>Due date</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let structure of structures"><td>{{ lookup.className(structure.classId) }}</td><td>{{ lookup.feeCategoryNameById(structure.feeCategoryId) }}</td><td>{{ structure.amount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ structure.dueDate }}</td><td class="actions"><button type="button" (click)="editStructure(structure)">Edit</button><button type="button" (click)="deleteStructure(structure)">Delete</button></td></tr><tr *ngIf="!structures.length"><td colspan="5" class="empty-cell">No fee structures found.</td></tr></tbody></table></div>
       </section>
 
       <section class="panel" *ngIf="activeTab === 'ledger'">
         <div class="panel-heading"><div><p class="section-kicker">Student fee ledger</p><h2>Balances and payment status</h2></div><button class="primary-btn" type="button" (click)="loadLedger()">Refresh</button></div>
         <div class="filter-row"><label>Status<select [(ngModel)]="ledgerStatus" name="ledgerStatus" (ngModelChange)="loadLedger()"><option value="">All</option><option>PENDING</option><option>PARTIAL</option><option>PAID</option></select></label><label>Class ID<input [(ngModel)]="ledgerClassId" name="ledgerClassId" (keyup.enter)="loadLedger()" /></label></div>
-        <div class="table-wrap"><table><thead><tr><th>Student</th><th>Class</th><th>Total</th><th>Paid</th><th>Outstanding</th><th>Status</th><th>Due</th></tr></thead><tbody><tr *ngFor="let entry of ledger"><td>{{ entry.studentId }}</td><td>{{ entry.classId || '-' }}</td><td>{{ entry.totalAmount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ entry.paidAmount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ entry.outstandingAmount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ entry.status }}</td><td>{{ entry.dueDate }}</td></tr><tr *ngIf="!ledger.length"><td colspan="7" class="empty-cell">No ledger entries found.</td></tr></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Student</th><th>Class</th><th>Total</th><th>Paid</th><th>Outstanding</th><th>Status</th><th>Due</th></tr></thead><tbody><tr *ngFor="let entry of ledger"><td>{{ lookup.studentName(entry.studentId) }}</td><td>{{ lookup.className(entry.classId) }}</td><td>{{ entry.totalAmount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ entry.paidAmount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ entry.outstandingAmount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ entry.status }}</td><td>{{ entry.dueDate }}</td></tr><tr *ngIf="!ledger.length"><td colspan="7" class="empty-cell">No ledger entries found.</td></tr></tbody></table></div>
       </section>
 
       <section class="panel" *ngIf="activeTab === 'assignments'">
         <div class="panel-heading"><div><p class="section-kicker">Fee assignments</p><h2>Apply a structure to a student</h2></div><button class="primary-btn" type="button" (click)="assignFee()">Assign fee</button></div>
-        <form class="form-grid" (ngSubmit)="assignFee()"><label>Structure ID<input [(ngModel)]="assignmentForm.feeStructureId" name="assignmentStructure" required /></label><label>Student ID<input [(ngModel)]="assignmentForm.studentId" name="assignmentStudent" required /></label><label>Override amount<input type="number" min="0" [(ngModel)]="assignmentForm.overrideAmount" name="assignmentAmount" /></label></form>
+        <form class="form-grid" (ngSubmit)="assignFee()"><label>Structure ID<input [(ngModel)]="assignmentForm.feeStructureId" name="assignmentStructure" required /></label><label>Student ID<input [(ngModel)]="assignmentForm.studentId" name="assignmentStudent" required /></label><label>Override amount<input type="number" min="0.01" step="0.01" [(ngModel)]="assignmentForm.overrideAmount" name="assignmentAmount" /></label></form>
         <div class="panel-heading compact-heading"><div><p class="section-kicker">Class assignment</p><h2>Apply to a whole class</h2></div><button class="primary-btn" type="button" (click)="assignClassFee()">Assign class fee</button></div>
-        <form class="form-grid" (ngSubmit)="assignClassFee()"><label>Structure ID<input [(ngModel)]="classAssignmentForm.feeStructureId" name="classAssignmentStructure" required /></label><label>Class ID<input [(ngModel)]="classAssignmentForm.classId" name="classAssignmentClass" required /></label><label>Override amount<input type="number" min="0" [(ngModel)]="classAssignmentForm.overrideAmount" name="classAssignmentAmount" /></label></form>
-        <div class="table-wrap"><table><thead><tr><th>Structure</th><th>Student</th><th>Override</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let assignment of assignments"><td>{{ assignment.feeStructureId }}</td><td>{{ assignment.studentId || '-' }}</td><td>{{ assignment.overrideAmount ?? '-' }}</td><td><button type="button" (click)="deleteAssignment(assignment)">Remove</button></td></tr><tr *ngIf="!assignments.length"><td colspan="4" class="empty-cell">No assignments found.</td></tr></tbody></table></div>
+        <form class="form-grid" (ngSubmit)="assignClassFee()"><label>Structure ID<input [(ngModel)]="classAssignmentForm.feeStructureId" name="classAssignmentStructure" required /></label><label>Class ID<input [(ngModel)]="classAssignmentForm.classId" name="classAssignmentClass" required /></label><label>Override amount<input type="number" min="0.01" step="0.01" [(ngModel)]="classAssignmentForm.overrideAmount" name="classAssignmentAmount" /></label></form>
+        <div class="table-wrap"><table><thead><tr><th>Fee structure</th><th>Assigned to</th><th>Override</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let assignment of assignments"><td>{{ lookup.structureSummary(assignment.feeStructureId) }}</td><td>{{ assignment.studentId ? lookup.studentName(assignment.studentId) : (assignment.classId ? lookup.className(assignment.classId) + ' (whole class)' : '-') }}</td><td>{{ assignment.overrideAmount ?? '-' }}</td><td><button type="button" (click)="deleteAssignment(assignment)">Remove</button></td></tr><tr *ngIf="!assignments.length"><td colspan="4" class="empty-cell">No assignments found.</td></tr></tbody></table></div>
       </section>
 
       <section class="panel" *ngIf="activeTab === 'receipts'">
-        <div class="panel-heading"><div><p class="section-kicker">Fee receipts</p><h2>Record a payment</h2></div><button class="primary-btn" type="button" (click)="saveReceipt()">Generate receipt</button></div>
-        <form class="form-grid" (ngSubmit)="saveReceipt()"><label>Ledger entry ID<input [(ngModel)]="receiptForm.ledgerEntryId" name="receiptLedger" required /></label><label>Amount paid<input type="number" min="0.01" [(ngModel)]="receiptForm.amountPaid" name="receiptAmount" required /></label><label>Receipt date<input type="date" [(ngModel)]="receiptForm.receiptDate" name="receiptDate" required /></label><label>Remarks<input [(ngModel)]="receiptForm.remarks" name="receiptRemarks" /></label></form>
-        <div class="table-wrap"><table><thead><tr><th>Receipt</th><th>Student</th><th>Amount</th><th>Date</th><th>Remarks</th></tr></thead><tbody><tr *ngFor="let receipt of receipts"><td>{{ receipt.receiptNumber }}</td><td>{{ receipt.studentId }}</td><td>{{ receipt.amountPaid | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ receipt.receiptDate }}</td><td>{{ receipt.remarks || '-' }}</td></tr><tr *ngIf="!receipts.length"><td colspan="5" class="empty-cell">No receipts found.</td></tr></tbody></table></div>
+        <div class="panel-heading"><div><p class="section-kicker">Fee receipts</p><h2>Record a payment</h2></div><button class="primary-btn" type="button" [disabled]="isOverpayment" (click)="saveReceipt()">Generate receipt</button></div>
+        <form class="form-grid" (ngSubmit)="saveReceipt()">
+          <label>Ledger entry<select [(ngModel)]="receiptForm.ledgerEntryId" name="receiptLedger" required>
+            <option value="">Select a pending ledger entry</option>
+            <option *ngFor="let entry of ledger" [value]="entry.id">{{ lookup.studentName(entry.studentId) }} · outstanding {{ entry.outstandingAmount | currency:'INR':'symbol':'1.0-0' }}</option>
+          </select></label>
+          <label>Amount paid<input type="number" min="0.01" [(ngModel)]="receiptForm.amountPaid" name="receiptAmount" required /></label>
+          <label>Receipt date<input type="date" [(ngModel)]="receiptForm.receiptDate" name="receiptDate" required /></label>
+          <label>Remarks<input [(ngModel)]="receiptForm.remarks" name="receiptRemarks" /></label>
+        </form>
+        <p class="error-text" *ngIf="isOverpayment">Amount paid cannot exceed the outstanding balance of {{ selectedLedgerEntry?.outstandingAmount | currency:'INR':'symbol':'1.0-0' }}.</p>
+        <div class="table-wrap"><table><thead><tr><th>Receipt</th><th>Student</th><th>Amount</th><th>Date</th><th>Remarks</th></tr></thead><tbody><tr *ngFor="let receipt of receipts"><td>{{ receipt.receiptNumber }}</td><td>{{ lookup.studentName(receipt.studentId) }}</td><td>{{ receipt.amountPaid | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ receipt.receiptDate }}</td><td>{{ receipt.remarks || '-' }}</td></tr><tr *ngIf="!receipts.length"><td colspan="5" class="empty-cell">No receipts found.</td></tr></tbody></table></div>
       </section>
     </section>
   `,
@@ -101,6 +111,7 @@ export class FeeManagementComponent implements OnInit {
   private readonly feeService = inject(FeeService);
   private readonly authService = inject(AuthService);
   private readonly cdr = inject(ChangeDetectorRef);
+  readonly lookup = inject(FeeLookupService);
   readonly tabs: { value: FeeTab; label: string }[] = [
     { value: 'years', label: 'Academic years' }, { value: 'categories', label: 'Categories' }, { value: 'terms', label: 'Terms' },
     { value: 'structures', label: 'Structures' }, { value: 'assignments', label: 'Assignments' }, { value: 'ledger', label: 'Ledger' }, { value: 'receipts', label: 'Receipts' },
@@ -129,11 +140,31 @@ export class FeeManagementComponent implements OnInit {
   ledgerStatus = '';
   ledgerClassId = '';
 
-  ngOnInit(): void { this.loadAll(); }
+  get selectedLedgerEntry(): StudentFeeLedger | undefined {
+    return this.ledger.find((entry) => entry.id === this.receiptForm.ledgerEntryId);
+  }
 
-  selectTab(tab: FeeTab): void { this.activeTab = tab; this.clearMessages(); if (tab === 'terms') this.loadTerms(); if (tab === 'structures') this.loadStructures(); if (tab === 'assignments') this.loadAssignments(); if (tab === 'ledger') this.loadLedger(); if (tab === 'receipts') this.loadReceipts(); }
+  get isOverpayment(): boolean {
+    const entry = this.selectedLedgerEntry;
+    return !!entry && this.receiptForm.amountPaid > entry.outstandingAmount;
+  }
 
-  saveAcademicYear(): void { const request = { ...this.yearForm }; const call = this.editingYearId ? this.feeService.updateAcademicYear(this.editingYearId, request) : this.feeService.createAcademicYear(request); call.subscribe({ next: () => { this.done('Academic year saved.'); this.resetYear(); this.loadAcademicYears(); }, error: (err) => this.fail(err) }); }
+  ngOnInit(): void {
+    this.loadAll();
+    this.lookup.loadAll(this.authService.getTenantId() ?? '').subscribe({ next: () => this.refresh(), error: () => this.refresh() });
+  }
+
+  selectTab(tab: FeeTab): void { this.activeTab = tab; this.clearMessages(); if (tab === 'terms') this.loadTerms(); if (tab === 'structures') this.loadStructures(); if (tab === 'assignments') this.loadAssignments(); if (tab === 'ledger') this.loadLedger(); if (tab === 'receipts') { this.loadReceipts(); this.loadLedger(); } }
+
+  saveAcademicYear(): void {
+    if (this.yearForm.startDate && this.yearForm.endDate && this.yearForm.startDate >= this.yearForm.endDate) {
+      this.errorMessage = 'Start date must be before end date.';
+      return;
+    }
+    const request = { ...this.yearForm };
+    const call = this.editingYearId ? this.feeService.updateAcademicYear(this.editingYearId, request) : this.feeService.createAcademicYear(request);
+    call.subscribe({ next: () => { this.done('Academic year saved.'); this.resetYear(); this.loadAcademicYears(); }, error: (err) => this.fail(err) });
+  }
   editYear(year: AcademicYear): void { this.editingYearId = year.id; this.yearForm = { name: year.name, startDate: year.startDate, endDate: year.endDate, active: year.active }; }
   deactivateYear(year: AcademicYear): void { if (!confirm(`Deactivate academic year ${year.name}?`)) return; this.feeService.deactivateAcademicYear(year.id).subscribe({ next: () => { this.done('Academic year deactivated.'); this.loadAcademicYears(); }, error: (err) => this.fail(err) }); }
 
@@ -148,7 +179,10 @@ export class FeeManagementComponent implements OnInit {
   editStructure(structure: FeeStructure): void { this.editingStructureId = structure.id; this.structureForm = { academicYearId: structure.academicYearId, classId: structure.classId, feeCategoryId: structure.feeCategoryId, feeTermId: structure.feeTermId, amount: structure.amount, dueDate: structure.dueDate }; }
   deleteStructure(structure: FeeStructure): void { if (!confirm('Delete this fee structure?')) return; this.feeService.deleteFeeStructure(structure.id).subscribe({ next: () => { this.done('Fee structure deleted.'); this.loadStructures(); }, error: (err) => this.fail(err) }); }
 
-  saveReceipt(): void { this.feeService.createReceipt(this.receiptForm).subscribe({ next: () => { this.done('Receipt generated.'); this.receiptForm = { ledgerEntryId: '', amountPaid: 0, receiptDate: new Date().toISOString().slice(0, 10), remarks: '' }; this.loadReceipts(); }, error: (err) => this.fail(err) }); }
+  saveReceipt(): void {
+    if (this.isOverpayment) return;
+    this.feeService.createReceipt(this.receiptForm).subscribe({ next: () => { this.done('Receipt generated.'); this.receiptForm = { ledgerEntryId: '', amountPaid: 0, receiptDate: new Date().toISOString().slice(0, 10), remarks: '' }; this.loadReceipts(); }, error: (err) => this.fail(err) });
+  }
   assignFee(): void { this.feeService.assignToStudent(this.assignmentForm).subscribe({ next: () => { this.done('Fee assigned.'); this.assignmentForm = { feeStructureId: '', studentId: '', overrideAmount: undefined }; this.loadAssignments(); }, error: (err) => this.fail(err) }); }
   assignClassFee(): void { this.feeService.assignToClass(this.classAssignmentForm).subscribe({ next: () => { this.done('Fee assigned to class.'); this.classAssignmentForm = { feeStructureId: '', classId: '', overrideAmount: undefined }; this.loadAssignments(); }, error: (err) => this.fail(err) }); }
   deleteAssignment(assignment: FeeAssignment): void { if (!confirm('Remove this fee assignment?')) return; this.feeService.deleteAssignment(assignment.id).subscribe({ next: () => { this.done('Assignment removed.'); this.loadAssignments(); }, error: (err) => this.fail(err) }); }

@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { FeeReceipt, StudentFeeLedger } from '../fees.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { FeeService } from '../fees.service';
+import { FeeLookupService } from '../fee-lookup.service';
 import { StudentService } from '../../../core/services/student.service';
 
 @Component({
@@ -122,6 +123,8 @@ export class FeeDashboardComponent implements OnInit {
   private readonly feeService = inject(FeeService);
   private readonly studentService = inject(StudentService);
   private readonly cdr = inject(ChangeDetectorRef);
+  // only used on the admin branch below - /api/admin/fee/** and /api/admin/students are ADMIN-only
+  private readonly lookup = inject(FeeLookupService);
   isAdmin = false;
   isTeacher = false;
   teacherClassId = '';
@@ -151,6 +154,7 @@ export class FeeDashboardComponent implements OnInit {
   private loadFeeData(): void {
     const tenantId = this.authService.getTenantId() ?? '';
     if (this.isAdmin) {
+      this.lookup.loadAll(tenantId).subscribe();
       this.feeService.getDashboard(tenantId).subscribe({
         next: (response) => {
           const dashboard = response.data;
@@ -232,7 +236,7 @@ export class FeeDashboardComponent implements OnInit {
     return {
       icon: 'R',
       title: receipt.receiptNumber,
-      detail: `Paid ${receipt.receiptDate}${receipt.studentId ? ` · ${receipt.studentId}` : ''}`,
+      detail: `Paid ${receipt.receiptDate}${receipt.studentId ? ` · ${this.isAdmin ? this.lookup.studentName(receipt.studentId) : receipt.studentId}` : ''}`,
       amount: receipt.amountPaid || 0,
       status: 'Paid',
       statusClass: 'paid',

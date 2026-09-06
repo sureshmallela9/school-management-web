@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { FeeService } from '../fees.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { FeeLookupService } from '../fee-lookup.service';
 import { StudentFeeLedger } from '../fees.model';
 
 type FeeReportType = 'paid' | 'outstanding' | 'overdue';
@@ -55,8 +56,8 @@ type FeeReportType = 'paid' | 'outstanding' | 'overdue';
             </thead>
             <tbody>
               <tr *ngFor="let row of reportRows">
-                <td>{{ row.studentId }}</td>
-                <td>{{ row.classId || '-' }}</td>
+                <td>{{ lookup.studentName(row.studentId) }}</td>
+                <td>{{ lookup.className(row.classId) }}</td>
                 <td>{{ row.totalAmount | currency:'INR':'symbol':'1.0-0' }}</td>
                 <td>{{ row.paidAmount | currency:'INR':'symbol':'1.0-0' }}</td>
                 <td>{{ row.outstandingAmount | currency:'INR':'symbol':'1.0-0' }}</td>
@@ -89,6 +90,7 @@ export class FeeReportsComponent implements OnInit {
   private readonly feeService = inject(FeeService);
   private readonly authService = inject(AuthService);
   private readonly cdr = inject(ChangeDetectorRef);
+  readonly lookup = inject(FeeLookupService);
 
   readonly reportOptions: { value: FeeReportType; label: string }[] = [
     { value: 'outstanding', label: 'Outstanding' },
@@ -105,6 +107,7 @@ export class FeeReportsComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.lookup.loadAll(this.authService.getTenantId() ?? '').subscribe({ next: () => this.cdr.detectChanges(), error: () => this.cdr.detectChanges() });
     this.loadReport();
   }
 
