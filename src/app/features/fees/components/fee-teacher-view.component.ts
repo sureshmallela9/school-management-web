@@ -1,7 +1,8 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
+import { TeacherContextService } from '../../../core/services/teacher-context.service';
 import { FeeService } from '../fees.service';
 import { StudentFeeLedger } from '../fees.model';
 
@@ -20,7 +21,8 @@ import { StudentFeeLedger } from '../fees.model';
       </header>
 
       <form class="class-filter" (ngSubmit)="load()">
-        <label>Assigned class ID<input [(ngModel)]="classId" name="classId" required placeholder="class-grade10" /></label>
+        <label>Assigned class ID<input [(ngModel)]="classId" name="classId" list="knownClassIds" required placeholder="class-grade10" /></label>
+        <datalist id="knownClassIds"><option *ngFor="let id of teacherContext.classIds()" [value]="id"></option></datalist>
         <button type="submit">View class fees</button>
       </form>
 
@@ -62,16 +64,31 @@ import { StudentFeeLedger } from '../fees.model';
     `,
   ],
 })
-export class FeeTeacherViewComponent {
+export class FeeTeacherViewComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly feeService = inject(FeeService);
   private readonly cdr = inject(ChangeDetectorRef);
+  readonly teacherContext = inject(TeacherContextService);
 
   classId = '';
   ledger: StudentFeeLedger[] = [];
   loading = false;
   loaded = false;
   errorMessage: string | null = null;
+
+  ngOnInit(): void {
+    this.teacherContext.refresh();
+  }
+
+  // re-runs whenever a new class is remembered (e.g. right after the background refresh() resolves),
+  // auto-filling the field the first time we learn a class this teacher is actually assigned to
+  private readonly autoSelectClass = effect(() => {
+    const [firstKnownClass] = this.teacherContext.classIds();
+    if (firstKnownClass && !this.classId) {
+      this.classId = firstKnownClass;
+      this.load();
+    }
+  });
 
   load(): void {
     if (!this.classId.trim()) return;

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { TeacherContextService } from '../../core/services/teacher-context.service';
 import { HomeworkService } from '../../core/services/homework.service';
 import { HomeworkDto } from '../../core/models/homework.model';
 
@@ -23,7 +24,8 @@ import { HomeworkDto } from '../../core/models/homework.model';
         <form class="homework-form" (ngSubmit)="create()">
           <label>Title<input [(ngModel)]="title" name="title" required placeholder="Chapter 4 exercises" /></label>
           <label>Subject ID<input [(ngModel)]="subjectId" name="subjectId" required placeholder="subject-math" /></label>
-          <label>Class ID<input [(ngModel)]="classId" name="classId" required placeholder="class-grade5" /></label>
+          <label>Class ID<input [(ngModel)]="classId" name="classId" list="knownClassIds" required placeholder="class-grade5" /></label>
+          <datalist id="knownClassIds"><option *ngFor="let id of teacherContext.classIds()" [value]="id"></option></datalist>
           <label>Assigned date<input type="date" [(ngModel)]="assignedDate" name="assignedDate" required /></label>
           <label>Due date<input type="date" [(ngModel)]="dueDate" name="dueDate" required /></label>
           <label class="full">Description<textarea [(ngModel)]="description" name="description" rows="3" placeholder="Optional notes for students"></textarea></label>
@@ -76,6 +78,7 @@ export class TeacherHomeworkComponent implements OnInit {
   private readonly homeworkService = inject(HomeworkService);
   private readonly authService = inject(AuthService);
   private readonly cdr = inject(ChangeDetectorRef);
+  readonly teacherContext = inject(TeacherContextService);
 
   homework: HomeworkDto[] = [];
   loading = true;
@@ -90,6 +93,7 @@ export class TeacherHomeworkComponent implements OnInit {
   dueDate = '';
 
   ngOnInit(): void {
+    this.teacherContext.refresh();
     this.load();
   }
 
@@ -130,6 +134,7 @@ export class TeacherHomeworkComponent implements OnInit {
       .subscribe({
         next: () => {
           this.successMessage = 'Homework assigned.';
+          this.teacherContext.rememberClass(this.classId.trim());
           this.title = '';
           this.description = '';
           this.subjectId = '';

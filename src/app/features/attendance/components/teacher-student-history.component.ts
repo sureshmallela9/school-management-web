@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
+import { TeacherContextService } from '../../../core/services/teacher-context.service';
 import { AttendanceService } from '../attendance.service';
 import { AttendanceRecord } from '../attendance.model';
 
@@ -21,7 +22,8 @@ import { AttendanceRecord } from '../attendance.model';
       <div class="filter-row">
         <label>
           <span>Student ID</span>
-          <input type="text" [(ngModel)]="studentId" placeholder="student-1" />
+          <input type="text" list="knownStudentIds" [(ngModel)]="studentId" placeholder="student-1" />
+          <datalist id="knownStudentIds"><option *ngFor="let id of teacherContext.studentIdsFor(null)" [value]="id"></option></datalist>
         </label>
         <label>
           <span>From date</span>
@@ -88,6 +90,8 @@ import { AttendanceRecord } from '../attendance.model';
   ],
 })
 export class TeacherStudentHistoryComponent {
+  readonly teacherContext = inject(TeacherContextService);
+
   studentId = '';
   fromDate = '';
   toDate = '';
@@ -100,7 +104,9 @@ export class TeacherStudentHistoryComponent {
     private readonly attendanceService: AttendanceService,
     private readonly authService: AuthService,
     private readonly cdr: ChangeDetectorRef,
-  ) {}
+  ) {
+    this.teacherContext.refresh();
+  }
 
   changePage(nextPage: number): void {
     this.page = nextPage;
@@ -118,6 +124,7 @@ export class TeacherStudentHistoryComponent {
       next: (response) => {
         this.records = response.data;
         this.totalPages = response.totalPages;
+        this.teacherContext.rememberStudent(null, this.studentId);
         this.cdr.detectChanges();
       },
       error: () => {

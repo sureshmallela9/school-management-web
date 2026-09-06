@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
+import { TeacherContextService } from '../../../core/services/teacher-context.service';
 import { AttendanceService } from '../attendance.service';
 import { AttendanceRecord, AttendanceType, ATTENDANCE_TYPES } from '../attendance.model';
 
@@ -21,13 +22,16 @@ import { AttendanceRecord, AttendanceType, ATTENDANCE_TYPES } from '../attendanc
       <div class="filter-row">
         <label>
           <span>Class ID</span>
-          <input type="text" [(ngModel)]="classId" placeholder="class id" (ngModelChange)="loadClassAttendance()" />
+          <input type="text" list="knownClassIds" [(ngModel)]="classId" placeholder="class id" (ngModelChange)="loadClassAttendance()" />
+          <datalist id="knownClassIds"><option *ngFor="let id of teacherContext.classIds()" [value]="id"></option></datalist>
         </label>
         <label>
           <span>Date</span>
           <input type="date" [(ngModel)]="date" [max]="maxDate" (ngModelChange)="loadClassAttendance()" />
         </label>
       </div>
+
+      <p class="hint" *ngIf="!teacherContext.classIds().length">Once you view or mark attendance for a class, its ID is remembered here for next time.</p>
 
       <p class="hint" *ngIf="!isToday">Only today's attendance can be marked or edited. This date is read-only.</p>
 
@@ -76,7 +80,8 @@ import { AttendanceRecord, AttendanceType, ATTENDANCE_TYPES } from '../attendanc
         <div class="add-row">
           <label>
             <span>Student ID</span>
-            <input type="text" [(ngModel)]="newStudentId" placeholder="student id" />
+            <input type="text" list="knownStudentIds" [(ngModel)]="newStudentId" placeholder="student id" />
+            <datalist id="knownStudentIds"><option *ngFor="let id of studentOptions" [value]="id"></option></datalist>
           </label>
           <label>
             <span>Status</span>
@@ -133,6 +138,8 @@ import { AttendanceRecord, AttendanceType, ATTENDANCE_TYPES } from '../attendanc
   ],
 })
 export class TeacherMarkAttendanceComponent implements OnInit {
+  readonly teacherContext = inject(TeacherContextService);
+
   classId = '';
   date = new Date().toISOString().slice(0, 10);
   maxDate = new Date().toISOString().slice(0, 10);
@@ -158,7 +165,22 @@ export class TeacherMarkAttendanceComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.teacherContext.refresh();
     this.loadClassAttendance();
+  }
+
+  // re-runs whenever a new class is remembered (e.g. right after the background refresh() resolves),
+  // auto-filling the field the first time we learn a class this teacher is actually assigned to
+  private readonly autoSelectClass = effect(() => {
+    const [firstKnownClass] = this.teacherContext.classIds();
+    if (firstKnownClass && !this.classId) {
+      this.classId = firstKnownClass;
+      this.loadClassAttendance();
+    }
+  });
+
+  get studentOptions(): string[] {
+    return this.teacherContext.studentIdsFor(this.classId);
   }
 
   get isToday(): boolean {
@@ -177,6 +199,8 @@ export class TeacherMarkAttendanceComponent implements OnInit {
     this.attendanceService.getClassAttendance(this.classId, this.date, tenantId).subscribe({
       next: (response) => {
         this.records = response.data ?? [];
+        this.teacherContext.rememberClass(this.classId);
+        this.records.forEach((record) => this.teacherContext.rememberStudent(this.classId, record.studentId));
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -252,6 +276,7 @@ export class TeacherMarkAttendanceComponent implements OnInit {
         }
         this.newStudentId = '';
         this.newRemarks = '';
+        this.teacherContext.rememberStudent(this.classId, request.studentId);
         this.successMessage = 'Attendance marked successfully.';
         this.loadClassAttendance();
       },
