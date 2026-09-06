@@ -95,6 +95,24 @@ export class FeeLookupService {
     return this.students.get(id)?.name ?? id;
   }
 
+  /** Every student in the tenant, for populating real dropdowns instead of free-text GUID entry. */
+  studentOptions(): { id: string; label: string }[] {
+    return [...this.students.entries()]
+      .map(([id, entry]) => ({ id, label: `${entry.name} (${entry.className})` }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  /** Distinct classes derived from the student roster (there is no separate classes endpoint). */
+  classOptions(): { id: string; label: string }[] {
+    const seen = new Map<string, string>();
+    this.students.forEach((entry) => {
+      if (entry.classId && !seen.has(entry.classId)) {
+        seen.set(entry.classId, entry.className);
+      }
+    });
+    return [...seen.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
+  }
+
   admissionNumber(id?: string | null): string {
     if (!id) return '-';
     return this.students.get(id)?.admissionNumber ?? '-';
@@ -140,5 +158,15 @@ export class FeeLookupService {
     const structure = this.feeStructures.get(structureId);
     if (!structure) return structureId;
     return `${this.feeCategoryNameById(structure.feeCategoryId)} · ${this.feeTermLabelById(structure.feeTermId)}`;
+  }
+
+  /** Every fee structure, for populating a real dropdown instead of free-text GUID entry. */
+  structureOptions(): { id: string; label: string }[] {
+    return [...this.feeStructures.entries()]
+      .map(([id, structure]) => ({
+        id,
+        label: `${this.className(structure.classId)} · ${this.feeCategoryNameById(structure.feeCategoryId)} · ${this.feeTermLabelById(structure.feeTermId)} · ₹${structure.amount}`,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }
 }
