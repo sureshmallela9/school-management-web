@@ -76,7 +76,7 @@ type FeeTab = 'years' | 'categories' | 'terms' | 'structures' | 'assignments' | 
       <section class="panel" *ngIf="activeTab === 'ledger'">
         <div class="panel-heading"><div><p class="section-kicker">Student fee ledger</p><h2>Balances and payment status</h2></div><button class="primary-btn" type="button" (click)="loadLedger()">Refresh</button></div>
         <div class="filter-row"><label>Status<select [(ngModel)]="ledgerStatus" name="ledgerStatus" (ngModelChange)="loadLedger()"><option value="">All</option><option>PENDING</option><option>PARTIAL</option><option>PAID</option></select></label><label>Class ID<input [(ngModel)]="ledgerClassId" name="ledgerClassId" (keyup.enter)="loadLedger()" /></label></div>
-        <div class="table-wrap"><table><thead><tr><th>Student</th><th>Class</th><th>Total</th><th>Paid</th><th>Outstanding</th><th>Status</th><th>Due</th></tr></thead><tbody><tr *ngFor="let entry of ledger"><td>{{ lookup.studentName(entry.studentId) }}</td><td>{{ lookup.className(entry.classId) }}</td><td>{{ entry.totalAmount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ entry.paidAmount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ entry.outstandingAmount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ entry.status }}</td><td>{{ entry.dueDate }}</td></tr><tr *ngIf="!ledger.length"><td colspan="7" class="empty-cell">No ledger entries found.</td></tr></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Student</th><th>Class</th><th>Total</th><th>Paid</th><th>Outstanding</th><th>Status</th><th>Due</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let entry of ledger"><td>{{ lookup.studentName(entry.studentId) }}</td><td>{{ lookup.className(entry.classId) }}</td><td>{{ entry.totalAmount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ entry.paidAmount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ entry.outstandingAmount | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ entry.status }}</td><td>{{ entry.dueDate }}</td><td><button type="button" [disabled]="entry.outstandingAmount <= 0" (click)="payFromLedger(entry)">Pay</button></td></tr><tr *ngIf="!ledger.length"><td colspan="8" class="empty-cell">No ledger entries found.</td></tr></tbody></table></div>
       </section>
 
       <section class="panel" *ngIf="activeTab === 'assignments'">
@@ -88,16 +88,17 @@ type FeeTab = 'years' | 'categories' | 'terms' | 'structures' | 'assignments' | 
       </section>
 
       <section class="panel" *ngIf="activeTab === 'receipts'">
-        <div class="panel-heading"><div><p class="section-kicker">Fee receipts</p><h2>Record a payment</h2></div><button class="primary-btn" type="button" [disabled]="isOverpayment" (click)="saveReceipt()">Generate receipt</button></div>
+        <div class="panel-heading"><div><p class="section-kicker">Fee receipts</p><h2>Record a payment</h2></div><button class="primary-btn" type="button" [disabled]="!canSubmitReceipt" (click)="saveReceipt()">Generate receipt</button></div>
         <form class="form-grid" (ngSubmit)="saveReceipt()">
-          <label>Ledger entry<select [(ngModel)]="receiptForm.ledgerEntryId" name="receiptLedger" required>
+          <label>Ledger entry<select [(ngModel)]="receiptForm.ledgerEntryId" name="receiptLedger" required (ngModelChange)="onLedgerEntrySelected()">
             <option value="">Select a pending ledger entry</option>
-            <option *ngFor="let entry of ledger" [value]="entry.id">{{ lookup.studentName(entry.studentId) }} · outstanding {{ entry.outstandingAmount | currency:'INR':'symbol':'1.0-0' }}</option>
+            <option *ngFor="let entry of payableLedgerEntries" [value]="entry.id">{{ lookup.studentName(entry.studentId) }} · outstanding {{ entry.outstandingAmount | currency:'INR':'symbol':'1.0-0' }}</option>
           </select></label>
           <label>Amount paid<input type="number" min="0.01" [(ngModel)]="receiptForm.amountPaid" name="receiptAmount" required /></label>
           <label>Receipt date<input type="date" [(ngModel)]="receiptForm.receiptDate" name="receiptDate" required /></label>
           <label>Remarks<input [(ngModel)]="receiptForm.remarks" name="receiptRemarks" /></label>
         </form>
+        <p class="error-text" *ngIf="!payableLedgerEntries.length">No pending or partially-paid ledger entries found. Switch to the Ledger tab to check balances, or assign a fee first.</p>
         <p class="error-text" *ngIf="isOverpayment">Amount paid cannot exceed the outstanding balance of {{ selectedLedgerEntry?.outstandingAmount | currency:'INR':'symbol':'1.0-0' }}.</p>
         <div class="table-wrap"><table><thead><tr><th>Receipt</th><th>Student</th><th>Amount</th><th>Date</th><th>Remarks</th></tr></thead><tbody><tr *ngFor="let receipt of receipts"><td>{{ receipt.receiptNumber }}</td><td>{{ lookup.studentName(receipt.studentId) }}</td><td>{{ receipt.amountPaid | currency:'INR':'symbol':'1.0-0' }}</td><td>{{ receipt.receiptDate }}</td><td>{{ receipt.remarks || '-' }}</td></tr><tr *ngIf="!receipts.length"><td colspan="5" class="empty-cell">No receipts found.</td></tr></tbody></table></div>
       </section>
@@ -144,9 +145,25 @@ export class FeeManagementComponent implements OnInit {
     return this.ledger.find((entry) => entry.id === this.receiptForm.ledgerEntryId);
   }
 
+  /** Only entries with a balance left can be paid against - already-settled entries are hidden from the picker. */
+  get payableLedgerEntries(): StudentFeeLedger[] {
+    return this.ledger.filter((entry) => entry.outstandingAmount > 0);
+  }
+
   get isOverpayment(): boolean {
     const entry = this.selectedLedgerEntry;
     return !!entry && this.receiptForm.amountPaid > entry.outstandingAmount;
+  }
+
+  get canSubmitReceipt(): boolean {
+    return !!this.receiptForm.ledgerEntryId && this.receiptForm.amountPaid > 0 && !!this.receiptForm.receiptDate && !this.isOverpayment;
+  }
+
+  onLedgerEntrySelected(): void {
+    const entry = this.selectedLedgerEntry;
+    if (entry) {
+      this.receiptForm.amountPaid = entry.outstandingAmount;
+    }
   }
 
   ngOnInit(): void {
@@ -180,13 +197,30 @@ export class FeeManagementComponent implements OnInit {
   deleteStructure(structure: FeeStructure): void { if (!confirm('Delete this fee structure?')) return; this.feeService.deleteFeeStructure(structure.id).subscribe({ next: () => { this.done('Fee structure deleted.'); this.loadStructures(); }, error: (err) => this.fail(err) }); }
 
   saveReceipt(): void {
-    if (this.isOverpayment) return;
-    this.feeService.createReceipt(this.receiptForm).subscribe({ next: () => { this.done('Receipt generated.'); this.receiptForm = { ledgerEntryId: '', amountPaid: 0, receiptDate: new Date().toISOString().slice(0, 10), remarks: '' }; this.loadReceipts(); }, error: (err) => this.fail(err) });
+    if (!this.canSubmitReceipt) {
+      this.errorMessage = !this.receiptForm.ledgerEntryId
+        ? 'Select a ledger entry to record a payment against.'
+        : this.isOverpayment
+          ? 'Amount paid cannot exceed the outstanding balance.'
+          : 'Enter an amount paid greater than zero and a receipt date.';
+      this.refresh();
+      return;
+    }
+    this.feeService.createReceipt(this.receiptForm).subscribe({ next: () => { this.done('Receipt generated.'); this.receiptForm = { ledgerEntryId: '', amountPaid: 0, receiptDate: new Date().toISOString().slice(0, 10), remarks: '' }; this.loadReceipts(); this.loadLedger(); }, error: (err) => this.fail(err) });
   }
   assignFee(): void { this.feeService.assignToStudent(this.assignmentForm).subscribe({ next: () => { this.done('Fee assigned.'); this.assignmentForm = { feeStructureId: '', studentId: '', overrideAmount: undefined }; this.loadAssignments(); }, error: (err) => this.fail(err) }); }
   assignClassFee(): void { this.feeService.assignToClass(this.classAssignmentForm).subscribe({ next: () => { this.done('Fee assigned to class.'); this.classAssignmentForm = { feeStructureId: '', classId: '', overrideAmount: undefined }; this.loadAssignments(); }, error: (err) => this.fail(err) }); }
   deleteAssignment(assignment: FeeAssignment): void { if (!confirm('Remove this fee assignment?')) return; this.feeService.deleteAssignment(assignment.id).subscribe({ next: () => { this.done('Assignment removed.'); this.loadAssignments(); }, error: (err) => this.fail(err) }); }
   loadLedger(): void { this.feeService.getLedger({ status: this.ledgerStatus, classId: this.ledgerClassId }, 1, 40).subscribe({ next: (response) => { this.ledger = response.data; this.refresh(); }, error: (err) => this.fail(err) }); }
+
+  /** Jumps to the Receipts tab with this ledger entry pre-selected, so "Pay" always works even if the Ledger and Receipts tabs were loaded independently. */
+  payFromLedger(entry: StudentFeeLedger): void {
+    this.activeTab = 'receipts';
+    this.receiptForm.ledgerEntryId = entry.id;
+    this.receiptForm.amountPaid = entry.outstandingAmount;
+    this.clearMessages();
+    this.loadReceipts();
+  }
   loadReceipts(): void { this.feeService.getReceipts(undefined, 1, 40).subscribe({ next: (response) => { this.receipts = response.data; this.refresh(); }, error: (err) => this.fail(err) }); }
   loadAssignments(): void { this.feeService.getAssignments().subscribe({ next: (response) => { this.assignments = response.data || []; this.refresh(); }, error: (err) => this.fail(err) }); }
 
