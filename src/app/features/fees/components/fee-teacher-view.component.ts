@@ -26,6 +26,17 @@ import { StudentFeeLedger } from '../fees.model';
         <button type="submit">View class fees</button>
       </form>
 
+      <div class="known-ids">
+        <p class="loading" *ngIf="!teacherContext.classIds().length">No class IDs known yet - there is no "list my classes" endpoint on this backend, so add the class IDs your school gave you below.</p>
+        <div class="known-ids-row">
+          <input type="text" #newClassIdInput placeholder="Add a class ID you teach" (keyup.enter)="addKnownClass(newClassIdInput.value); newClassIdInput.value = ''" />
+          <button type="button" (click)="addKnownClass(newClassIdInput.value); newClassIdInput.value = ''">Add</button>
+        </div>
+        <div class="chip-row" *ngIf="teacherContext.classIds().length">
+          <span class="chip" *ngFor="let id of teacherContext.classIds()">{{ id }}<button type="button" (click)="teacherContext.forgetClass(id)" aria-label="Remove">×</button></span>
+        </div>
+      </div>
+
       <p class="loading" *ngIf="loading">Loading class fee summary...</p>
       <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
 
@@ -61,6 +72,13 @@ import { StudentFeeLedger } from '../fees.model';
       .error { color: #b91c1c; font-weight: 700; }
       .panel { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 8px 18px rgba(15,23,42,0.06); overflow: auto; }
       table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 10px; border-bottom: 1px solid #edf2f7; white-space: nowrap; }
+      .known-ids { display: grid; gap: 8px; }
+      .known-ids-row { display: flex; gap: 8px; }
+      .known-ids-row input { flex: 1; border: 1px solid #dfe7f5; border-radius: 8px; padding: 8px 10px; font: inherit; }
+      .known-ids-row button { border: 0; border-radius: 8px; padding: 8px 12px; background: #4f46e5; color: white; font-weight: 700; cursor: pointer; }
+      .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chip { display: inline-flex; align-items: center; gap: 6px; background: #eef2ff; color: #3730a3; padding: 5px 6px 5px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+      .chip button { border: none; background: transparent; color: inherit; cursor: pointer; font-weight: 800; padding: 0 4px; }
     `,
   ],
 })
@@ -78,6 +96,11 @@ export class FeeTeacherViewComponent implements OnInit {
 
   ngOnInit(): void {
     this.teacherContext.refresh();
+  }
+
+  addKnownClass(value: string): void {
+    if (!value.trim()) return;
+    this.teacherContext.rememberClass(value.trim());
   }
 
   // re-runs whenever a new class is remembered (e.g. right after the background refresh() resolves),

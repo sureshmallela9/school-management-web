@@ -31,7 +31,16 @@ import { AttendanceRecord, AttendanceType, ATTENDANCE_TYPES } from '../attendanc
         </label>
       </div>
 
-      <p class="hint" *ngIf="!teacherContext.classIds().length">Once you view or mark attendance for a class, its ID is remembered here for next time.</p>
+      <div class="known-ids">
+        <p class="hint" *ngIf="!teacherContext.classIds().length">No class IDs known yet - there is no "list my classes" endpoint on this backend, so add the class IDs your school gave you below.</p>
+        <div class="known-ids-row">
+          <input type="text" #newClassIdInput placeholder="Add a class ID you teach" (keyup.enter)="addKnownClass(newClassIdInput.value); newClassIdInput.value = ''" />
+          <button type="button" class="text-btn" (click)="addKnownClass(newClassIdInput.value); newClassIdInput.value = ''">Add</button>
+        </div>
+        <div class="chip-row" *ngIf="teacherContext.classIds().length">
+          <span class="chip" *ngFor="let id of teacherContext.classIds()">{{ id }}<button type="button" (click)="teacherContext.forgetClass(id)" aria-label="Remove">×</button></span>
+        </div>
+      </div>
 
       <p class="hint" *ngIf="!isToday">Only today's attendance can be marked or edited. This date is read-only.</p>
 
@@ -77,6 +86,13 @@ import { AttendanceRecord, AttendanceType, ATTENDANCE_TYPES } from '../attendanc
 
       <div class="card" *ngIf="isToday">
         <h2>Mark a student</h2>
+        <div class="known-ids-row">
+          <input type="text" #newStudentIdInput placeholder="Add a student ID in this class" (keyup.enter)="addKnownStudent(newStudentIdInput.value); newStudentIdInput.value = ''" />
+          <button type="button" class="text-btn" (click)="addKnownStudent(newStudentIdInput.value); newStudentIdInput.value = ''">Add</button>
+        </div>
+        <div class="chip-row" *ngIf="studentOptions.length">
+          <span class="chip" *ngFor="let id of studentOptions">{{ id }}<button type="button" (click)="teacherContext.forgetStudent(classId, id)" aria-label="Remove">×</button></span>
+        </div>
         <div class="add-row">
           <label>
             <span>Student ID</span>
@@ -134,6 +150,12 @@ import { AttendanceRecord, AttendanceType, ATTENDANCE_TYPES } from '../attendanc
       .primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
       .error-text { color: #b91c1c; font-weight: 600; margin: 0; }
       .success-text { color: #166534; font-weight: 600; margin: 0; }
+      .known-ids { display: grid; gap: 8px; }
+      .known-ids-row { display: flex; gap: 8px; }
+      .known-ids-row input { flex: 1; border: 1px solid #dfe7f5; border-radius: 10px; padding: 8px 10px; font: inherit; }
+      .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chip { display: inline-flex; align-items: center; gap: 6px; background: #eef2ff; color: #3730a3; padding: 5px 6px 5px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+      .chip button { border: none; background: transparent; color: inherit; cursor: pointer; font-weight: 800; padding: 0 4px; }
     `,
   ],
 })
@@ -181,6 +203,16 @@ export class TeacherMarkAttendanceComponent implements OnInit {
 
   get studentOptions(): string[] {
     return this.teacherContext.studentIdsFor(this.classId);
+  }
+
+  addKnownClass(value: string): void {
+    if (!value.trim()) return;
+    this.teacherContext.rememberClass(value.trim());
+  }
+
+  addKnownStudent(value: string): void {
+    if (!value.trim()) return;
+    this.teacherContext.rememberStudent(this.classId, value.trim());
   }
 
   get isToday(): boolean {

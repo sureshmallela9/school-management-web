@@ -62,6 +62,12 @@ export class TeacherContextService {
     }
   }
 
+  forgetClass(classId: string): void {
+    const next = this.classIdsSignal().filter((id) => id !== classId);
+    this.classIdsSignal.set(next);
+    this.writeStorage('classes', next);
+  }
+
   rememberStudent(classId: string | null | undefined, studentId?: string | null): void {
     if (!studentId) return;
     const key = classId || '_global';
@@ -82,6 +88,14 @@ export class TeacherContextService {
       this.studentIdsByClass.set(key, new Set(this.readStorage(`students:${key}`)));
     }
     return [...(this.studentIdsByClass.get(key) ?? new Set())];
+  }
+
+  forgetStudent(classId: string | null | undefined, studentId: string): void {
+    const key = classId || '_global';
+    const set = this.studentIdsByClass.get(key) ?? new Set(this.readStorage(`students:${key}`));
+    set.delete(studentId);
+    this.studentIdsByClass.set(key, set);
+    this.writeStorage(`students:${key}`, [...set]);
   }
 
   private storageKey(suffix: string): string {

@@ -36,6 +36,17 @@ import { AttendanceRecord } from '../attendance.model';
         <button type="button" class="primary-btn" (click)="search()">Search</button>
       </div>
 
+      <div class="known-ids">
+        <p class="hint" *ngIf="!teacherContext.studentIdsFor(null).length">No student IDs known yet - there is no "list my students" endpoint on this backend, so add the student IDs your school gave you below.</p>
+        <div class="known-ids-row">
+          <input type="text" #newStudentIdInput placeholder="Add a student ID" (keyup.enter)="addKnownStudent(newStudentIdInput.value); newStudentIdInput.value = ''" />
+          <button type="button" class="primary-btn" (click)="addKnownStudent(newStudentIdInput.value); newStudentIdInput.value = ''">Add</button>
+        </div>
+        <div class="chip-row" *ngIf="teacherContext.studentIdsFor(null).length">
+          <span class="chip" *ngFor="let id of teacherContext.studentIdsFor(null)">{{ id }}<button type="button" (click)="teacherContext.forgetStudent(null, id)" aria-label="Remove">×</button></span>
+        </div>
+      </div>
+
       <div class="table-wrap">
         <table>
           <thead>
@@ -86,6 +97,13 @@ import { AttendanceRecord } from '../attendance.model';
       .pagination { display: flex; justify-content: center; align-items: center; gap: 12px; background: white; padding: 12px; border-radius: 12px; }
       .pagination button { border: none; border-radius: 10px; background: #e2e8f0; padding: 8px 12px; font-weight: 700; cursor: pointer; }
       .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .hint { margin: 0; background: #fef9c3; color: #854d0e; padding: 12px 14px; border-radius: 10px; font-weight: 600; }
+      .known-ids { display: grid; gap: 8px; }
+      .known-ids-row { display: flex; gap: 8px; }
+      .known-ids-row input { flex: 1; border: 1px solid #dfe7f5; border-radius: 10px; padding: 8px 10px; font: inherit; }
+      .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chip { display: inline-flex; align-items: center; gap: 6px; background: #eef2ff; color: #3730a3; padding: 5px 6px 5px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+      .chip button { border: none; background: transparent; color: inherit; cursor: pointer; font-weight: 800; padding: 0 4px; }
     `,
   ],
 })
@@ -111,6 +129,11 @@ export class TeacherStudentHistoryComponent {
   changePage(nextPage: number): void {
     this.page = nextPage;
     this.search();
+  }
+
+  addKnownStudent(value: string): void {
+    if (!value.trim()) return;
+    this.teacherContext.rememberStudent(null, value.trim());
   }
 
   search(): void {
