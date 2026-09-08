@@ -143,8 +143,8 @@ export class StudentListComponent implements OnInit {
     const tenantId = this.authService.getTenantId() ?? 'tenant-001';
     this.studentService.deleteStudent(student.id, tenantId).subscribe({
       next: () => this.loadStudents(),
-      error: () => {
-        console.error('Delete failed');
+      error: (err) => {
+        window.alert(err?.error?.message || err?.message || 'Unable to delete student');
         this.cdr.detectChanges();
       },
     });

@@ -45,7 +45,8 @@ import { AuthService } from '../../core/services/auth.service';
     </section>
 
     <ng-template #loading>
-      <p>Loading student…</p>
+      <p *ngIf="!errorMessage">Loading student…</p>
+      <p class="error-text" *ngIf="errorMessage">{{ errorMessage }}</p>
     </ng-template>
   `,
   styles: [
@@ -62,11 +63,13 @@ import { AuthService } from '../../core/services/auth.service';
       dl div:hover { background: #f8fafc; }
       dt { color: #64748b; }
       dd { margin: 0; font-weight: 600; text-align: right; }
+      .error-text { color: #b91c1c; font-weight: 600; }
     `,
   ],
 })
 export class StudentDetailComponent implements OnInit {
   student: Student | null = null;
+  errorMessage: string | null = null;
 
   constructor(
     private readonly studentService: StudentService,
@@ -85,10 +88,14 @@ export class StudentDetailComponent implements OnInit {
     this.studentService.getStudentById(id, tenantId).subscribe({
       next: (response) => {
         this.student = response.data ?? null;
+        if (!this.student) {
+          this.errorMessage = response.message || 'Student not found';
+        }
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
         this.student = null;
+        this.errorMessage = err?.error?.message || err?.message || 'Unable to load student';
         this.cdr.detectChanges();
       },
     });

@@ -1,9 +1,9 @@
 <div class="app-shell">
   <header class="topbar" *ngIf="isAuthenticated()">
     <div class="brand-wrap">
-      <div class="brand-mark">SM</div>
+      <div class="brand-mark" aria-label="QS">QS</div>
       <div>
-        <div class="brand-name">SchoolManagementUI</div>
+        <div class="brand-name">QSchool</div>
         <small>{{ userName }}</small>
       </div>
     </div>
@@ -41,7 +41,18 @@
       >Students</a
     >
     <a routerLink="/app/bus" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Bus</a>
-    <a routerLink="/app/attendance" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Attendance</a>
+    <a
+      [routerLink]="isAdmin() ? '/admin/attendance' : isTeacher() ? '/teacher/attendance/mark' : '/app/attendance'"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: false }"
+      >Attendance</a
+    >
+    <a
+      [routerLink]="isAdmin() ? '/admin/fees' : isTeacher() ? '/teacher/fees' : '/app/fees'"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: false }"
+      >Fees</a
+    >
     <a routerLink="/app/notifications" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Notices</a>
   </nav>
 </div>
