@@ -1,50 +1,31 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-daily-diary',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   template: `
     <section class="page-shell">
-      <header class="page-header">
-        <div>
-          <p class="eyebrow">Daily diary</p>
-          <h1>Homework</h1>
-        </div>
-      </header>
-
-      <div class="diary-list">
-        <article class="entry" *ngFor="let item of diary">
-          <div class="entry-header">
-            <strong>{{ item.title }}</strong>
-            <span>{{ item.status }}</span>
-          </div>
-          <p>{{ item.description }}</p>
-          <small>{{ item.subjectName }} • Due {{ item.dueDate | date:'mediumDate' }}</small>
-        </article>
-      </div>
+      <header class="page-header"><div><p class="eyebrow">Parent workspace</p><h1>Homework diary</h1><p class="lede">Homework and class assignments for your children.</p></div></header>
+      <article class="availability-card">
+        <div class="icon" aria-hidden="true">📚</div>
+        <h2>Homework feed isn’t connected yet</h2>
+        <p>The current backend integration does not provide a verified parent-scoped homework list. No sample assignments are shown as real school data.</p>
+        <p class="next-step">Ask your school to enable a parent-safe homework endpoint scoped to each linked child’s class.</p>
+        <a routerLink="/app/students">View your children</a>
+      </article>
     </section>
   `,
-  styles: [
-    `
-      .page-shell { display: grid; gap: 18px; }
-      .eyebrow { margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.72rem; color: #4f46e5; font-weight: 700; }
-      .diary-list { display: grid; gap: 14px; }
-      .entry { background: white; border-radius: 22px; padding: 18px; box-shadow: 0 10px 24px rgba(15,23,42,0.06); transition: transform 0.15s ease, box-shadow 0.15s ease; }
-      .entry:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(15,23,42,0.1); }
-      .entry-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-      .entry p { margin: 10px 0; color: #475569; }
-      .entry small { color: #64748b; }
-      .entry-header span { background: #eef2ff; color: #3730a3; padding: 6px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
-    `,
-  ],
+  styles: [`
+    .page-shell { display: grid; gap: 18px; } .page-header { display: flex; align-items: center; }
+    .eyebrow { margin: 0 0 6px; text-transform: uppercase; letter-spacing: .1em; font-size: .72rem; color: #4f46e5; font-weight: 700; }
+    h1 { margin: 0 0 6px; } .lede { margin: 0; color: #64748b; }
+    .availability-card { max-width: 720px; background: white; border-radius: 20px; padding: 28px; box-shadow: 0 10px 24px rgba(15,23,42,.06); }
+    .icon { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; background: #eef2ff; font-size: 1.5rem; }
+    h2 { margin: 18px 0 8px; font-size: 1.25rem; } p { color: #475569; line-height: 1.6; }
+    .next-step { border-left: 3px solid #6366f1; padding-left: 12px; } a { display: inline-block; margin-top: 6px; color: #4f46e5; font-weight: 700; text-decoration: none; }
+  `],
 })
-export class DailyDiaryComponent {
-  diary: Array<{ id: string; title: string; description?: string; subjectName?: string; dueDate?: string; status?: string }> = [];
-
-  constructor(private readonly dataService: MockDataService) {
-    this.diary = this.dataService.getParentDashboard().children.flatMap((child) => child.dailyDiary ?? []);
-  }
-}
+export class DailyDiaryComponent {}

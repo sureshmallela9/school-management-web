@@ -31,19 +31,21 @@ import { StudentFormComponent } from './features/student/student-form.component'
 import { SchoolListComponent } from './features/admin/school-list.component';
 import { TenantListComponent } from './features/admin/tenant-list.component';
 import { UserListComponent } from './features/admin/user-list.component';
+import { TeacherDashboardComponent } from './features/teacher/teacher-dashboard.component';
 
 export const routes: Routes = [
   { path: 'auth/login', component: LoginComponent },
   {
     path: 'app',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['ROLE_PARENT'] },
     children: [
       { path: 'home', component: ParentDashboardComponent },
       { path: 'students', component: ParentStudentListComponent },
       { path: 'students/:id', component: ParentStudentDetailComponent },
       { path: 'attendance', component: ParentAttendanceComponent },
       { path: 'daily-diary', component: DailyDiaryComponent },
-      { path: 'fees', component: FeeDashboardComponent },
+      { path: 'fees', component: FeeParentViewComponent },
       { path: 'notifications', component: NotificationsComponent },
       { path: 'leave-requests', component: LeaveRequestsComponent },
       { path: 'bus', component: BusLocationComponent },
@@ -80,12 +82,13 @@ export const routes: Routes = [
     canActivate: [roleGuard],
     data: { roles: ['ROLE_TEACHER'] },
     children: [
+      { path: 'home', component: TeacherDashboardComponent },
       { path: 'attendance/mark', component: TeacherMarkAttendanceComponent },
       { path: 'attendance/today', component: TeacherTodayAttendanceComponent },
       { path: 'attendance/student', component: TeacherStudentHistoryComponent },
       { path: 'homework', component: TeacherHomeworkComponent },
-      { path: 'fees', component: FeeDashboardComponent },
-      { path: '', redirectTo: 'attendance/mark', pathMatch: 'full' },
+      { path: 'fees', component: FeeTeacherViewComponent },
+      { path: '', redirectTo: 'home', pathMatch: 'full' },
     ],
   },
   // Flat aliases matching the fees/attendance module spec; each is role-guarded and reuses the

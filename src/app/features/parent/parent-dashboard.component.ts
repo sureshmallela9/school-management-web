@@ -1,8 +1,20 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ParentDashboardDto, StudentWithDetailsDto } from '../../core/models';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { catchError, forkJoin, of } from 'rxjs';
+import { AttendanceRecord, AttendanceSummary } from '../attendance/attendance.model';
+import { AttendanceService } from '../attendance/attendance.service';
+import { AuthService } from '../../core/services/auth.service';
+import { StudentService } from '../../core/services/student.service';
+import { Student } from '../../core/models/student.model';
+import { FeeService } from '../fees/fees.service';
+
+interface ChildOverview {
+  student: Student;
+  summary: AttendanceSummary | null;
+  recentAttendance: AttendanceRecord[];
+  outstandingFees: number;
+}
 
 @Component({
   selector: 'app-parent-dashboard',
@@ -12,124 +24,161 @@ import { MockDataService } from '../../core/services/mock-data.service';
     <section class="page-shell">
       <header class="page-header">
         <div>
-          <p class="eyebrow">Parent dashboard</p>
-          <h1>Overview</h1>
+          <p class="eyebrow">Family workspace</p>
+          <h1>Welcome, {{ parentName }}</h1>
+          <p class="lede">A live overview of your children’s school information.</p>
         </div>
-        <a class="accent-btn" routerLink="/app/attendance">View reports</a>
+        <a class="primary-btn" routerLink="/app/students">View children</a>
       </header>
 
-      <div class="stats-grid" *ngIf="dashboard">
-        <article class="stat-card">
-          <span>Children</span>
-          <strong>{{ dashboard.childrenCount }}</strong>
-        </article>
-        <article class="stat-card">
-          <span>Outstanding fees</span>
-          <strong>{{ dashboard.outstandingFeeBalance | currency:'INR':'symbol':'1.0-0' }}</strong>
-        </article>
-        <article class="stat-card">
-          <span>Unread notices</span>
-          <strong>{{ dashboard.unreadNotificationCount }}</strong>
-        </article>
+      <p class="loading" *ngIf="loading">Loading your family overview…</p>
+      <div class="error-state" *ngIf="errorMessage">
+        <strong>We couldn’t load your children.</strong><p>{{ errorMessage }}</p>
+        <button type="button" (click)="loadChildren()">Try again</button>
       </div>
 
-      <div class="student-list" *ngFor="let child of dashboard?.children ?? []">
-        <article class="student-card">
-          <div class="student-header">
-            <div class="avatar">{{ child.name.charAt(0) }}</div>
-            <div>
-              <h2>{{ child.name }}</h2>
-              <p>{{ child.className }} • Roll {{ child.rollNumber }}</p>
+      <ng-container *ngIf="!loading && !errorMessage">
+        <div class="stats-grid">
+          <article class="stat-card"><span>Children linked</span><strong>{{ children.length }}</strong></article>
+          <article class="stat-card"><span>Outstanding fees</span><strong>{{ totalOutstanding | currency:'INR':'symbol':'1.0-0' }}</strong></article>
+          <article class="stat-card"><span>Attendance this month</span><strong>{{ familyAttendance }}<small *ngIf="familyAttendance !== '—'">%</small></strong></article>
+        </div>
+
+        <div class="empty-state" *ngIf="!children.length">No students are linked to this parent account. Contact your school administrator.</div>
+
+        <article class="child-card" *ngFor="let child of children">
+          <header class="child-header">
+            <div class="avatar">{{ child.student.name.charAt(0) }}</div>
+            <div class="child-title">
+              <h2>{{ child.student.name }}</h2>
+              <p>{{ child.student.className || child.student.classId }}<span *ngIf="child.student.section"> · Section {{ child.student.section }}</span></p>
             </div>
-            <span class="status-badge" [class.present]="child.todayStatus === 'Present'" [class.late]="child.todayStatus === 'Late'" [class.absent]="child.todayStatus === 'Absent'">
-              {{ child.todayStatus }}
-            </span>
+            <span class="roll">Roll {{ child.student.rollNumber || '—' }}</span>
+          </header>
+
+          <div class="child-stats">
+            <div class="attendance-meter"><span>Attendance this month</span><strong>{{ child.summary?.attendancePercentage ?? '—' }}<small *ngIf="child.summary">%</small></strong></div>
+            <div class="metric"><span>Present</span><strong>{{ child.summary?.presentDays ?? '—' }}</strong></div>
+            <div class="metric"><span>Absent</span><strong>{{ child.summary?.absentDays ?? '—' }}</strong></div>
+            <div class="metric"><span>Late</span><strong>{{ child.summary?.lateDays ?? '—' }}</strong></div>
+            <div class="metric fees"><span>Outstanding fees</span><strong>{{ child.outstandingFees | currency:'INR':'symbol':'1.0-0' }}</strong></div>
           </div>
 
-          <div class="summary-row">
-            <div class="progress-box">
-              <div class="ring" [style.--value]="child.monthlySummary?.attendancePercentage ?? 0">
-                <div>{{ child.monthlySummary?.attendancePercentage ?? 0 }}%</div>
-              </div>
-            </div>
-            <div class="summary-grid">
-              <div><label>Present</label><strong>{{ child.monthlySummary?.presentDays }}</strong></div>
-              <div><label>Absent</label><strong>{{ child.monthlySummary?.absentDays }}</strong></div>
-              <div><label>Late</label><strong>{{ child.monthlySummary?.lateDays }}</strong></div>
-              <div><label>Leave</label><strong>{{ child.monthlySummary?.leaveDays }}</strong></div>
-            </div>
-          </div>
-
-          <div class="mini-section">
-            <h3>Recent attendance</h3>
-            <ul class="attendance-list">
-              <li *ngFor="let item of child.recentAttendance?.slice(0, 3) ?? []">
-                <span>{{ item.attendanceDate | date:'dd MMM' }}</span>
-                <strong>{{ item.attendanceType }}</strong>
+          <section class="recent-section">
+            <div class="section-heading"><h3>Recent attendance</h3><a routerLink="/app/attendance">Full history</a></div>
+            <ul class="attendance-list" *ngIf="child.recentAttendance.length; else noAttendance">
+              <li *ngFor="let record of child.recentAttendance">
+                <span>{{ record.attendanceDate | date:'mediumDate' }}</span>
+                <strong class="status" [class]="record.attendanceType.toLowerCase()">{{ record.attendanceType }}</strong>
+                <small>{{ record.remarks || '' }}</small>
               </li>
             </ul>
-          </div>
+            <ng-template #noAttendance><p class="empty-inline">No recent attendance records.</p></ng-template>
+          </section>
 
-          <div class="mini-section">
-            <h3>Daily diary</h3>
-            <ul class="diary-list">
-              <li *ngFor="let item of child.dailyDiary?.slice(0, 2) ?? []">
-                <a [routerLink]="['/app/daily-diary']">{{ item.title }}</a>
-                <small>{{ item.subjectName }}</small>
-              </li>
-            </ul>
-          </div>
+          <nav class="child-actions" aria-label="Child information">
+            <a [routerLink]="['/app/students', child.student.id]">Student profile</a>
+            <a routerLink="/app/attendance">Attendance</a>
+            <a routerLink="/app/fees">Fee details</a>
+            <a routerLink="/app/daily-diary">Homework diary</a>
+          </nav>
         </article>
-      </div>
+      </ng-container>
     </section>
   `,
-  styles: [
-    `
-      .page-shell { display: grid; gap: 20px; }
-      .page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-      .eyebrow { margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.72rem; color: #4f46e5; font-weight: 700; }
-      h1 { margin: 0; font-size: clamp(2rem, 3vw, 2.5rem); }
-      .accent-btn { display: inline-block; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none; border-radius: 12px; padding: 12px 16px; font-weight: 700; text-decoration: none; }
-      .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; }
-      .stat-card { background: white; padding: 18px; border-radius: 18px; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06); }
-      .stat-card span { display: block; color: #64748b; margin-bottom: 12px; }
-      .stat-card strong { font-size: 1.7rem; }
-      .student-list { display: grid; gap: 18px; }
-      .student-card { background: white; border-radius: 22px; padding: 18px; box-shadow: 0 12px 30px rgba(15,23,42,0.06); transition: transform 0.15s ease, box-shadow 0.15s ease; }
-      .student-card:hover { transform: translateY(-2px); box-shadow: 0 18px 36px rgba(15,23,42,0.1); }
-      .student-header { display: flex; align-items: center; gap: 14px; }
-      .avatar { width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, #dbeafe, #ddd6fe); display: grid; place-items: center; font-weight: 700; color: #1d4ed8; }
-      .student-header h2 { margin: 0; font-size: 1.3rem; }
-      .student-header p { margin: 4px 0 0; color: #64748b; }
-      .status-badge { margin-left: auto; padding: 7px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
-      .status-badge.present { background: #dcfce7; color: #166534; }
-      .status-badge.late { background: #fef3c7; color: #92400e; }
-      .status-badge.absent { background: #fee2e2; color: #991b1b; }
-      .summary-row { display: grid; grid-template-columns: 140px 1fr; gap: 18px; margin-top: 18px; }
-      .ring { --value: 0; width: 100px; height: 100px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#4f46e5 calc(var(--value) * 1%), #e2e8f0 0); position: relative; }
-      .ring::before { content: ''; position: absolute; inset: 12px; border-radius: 50%; background: white; }
-      .ring div { position: relative; z-index: 1; font-weight: 800; }
-      .summary-grid { display: grid; grid-template-columns: repeat(2, minmax(90px, 1fr)); gap: 12px; }
-      .summary-grid div { background: #f8fafc; border-radius: 12px; padding: 12px; }
-      .summary-grid label { display: block; color: #64748b; font-size: 0.8rem; }
-      .summary-grid strong { font-size: 1.1rem; }
-      .mini-section { margin-top: 18px; }
-      .mini-section h3 { margin: 0 0 10px; }
-      .attendance-list, .diary-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-      .attendance-list li, .diary-list li { display: flex; justify-content: space-between; gap: 8px; background: #f8fafc; border-radius: 10px; padding: 10px 12px; transition: background 0.15s ease; }
-      .attendance-list li:hover, .diary-list li:hover { background: #eef2ff; }
-      .diary-list a { text-decoration: none; color: inherit; font-weight: 600; }
-      .diary-list small { color: #64748b; }
-      @media (max-width: 640px) { .summary-row { grid-template-columns: 1fr; } }
-    `,
-  ],
+  styles: [`
+    .page-shell { display: grid; gap: 18px; }
+    .page-header, .child-header, .section-heading { display: flex; align-items: center; gap: 14px; }
+    .page-header, .section-heading { justify-content: space-between; flex-wrap: wrap; }
+    .eyebrow { margin: 0 0 6px; text-transform: uppercase; letter-spacing: .12em; color: #4f46e5; font-size: .72rem; font-weight: 700; }
+    h1, h2, h3, p { margin-top: 0; } h1 { margin-bottom: 6px; font-size: clamp(1.8rem,3vw,2.5rem); }
+    .lede, .child-title p { margin: 0; color: #64748b; }
+    .primary-btn { color: white; text-decoration: none; background: linear-gradient(135deg,#4f46e5,#7c3aed); border-radius: 11px; padding: 12px 16px; font-weight: 700; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(170px,1fr)); gap: 14px; }
+    .stat-card, .child-card, .empty-state, .error-state { background: white; border-radius: 18px; padding: 18px; box-shadow: 0 8px 20px rgba(15,23,42,.05); }
+    .stat-card span, .attendance-meter span, .metric span { display: block; color: #64748b; margin-bottom: 8px; }
+    .stat-card strong { font-size: 1.6rem; } .stat-card small, .attendance-meter small { font-size: .9rem; }
+    .child-card { display: grid; gap: 18px; } .child-title { flex: 1; } .child-title h2 { margin: 0 0 5px; }
+    .avatar { width: 48px; height: 48px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 15px; background: linear-gradient(135deg,#dbeafe,#ddd6fe); color: #3730a3; font-weight: 800; font-size: 1.2rem; }
+    .roll { color: #475569; font-weight: 700; white-space: nowrap; }
+    .child-stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(120px,1fr)); gap: 10px; }
+    .attendance-meter, .metric { background: #f8fafc; border-radius: 13px; padding: 13px; }
+    .attendance-meter strong { font-size: 1.5rem; color: #4338ca; } .metric strong { font-size: 1.15rem; } .metric.fees { grid-column: span 2; }
+    .section-heading { margin-bottom: 10px; } .section-heading h3 { margin: 0; font-size: 1rem; } .section-heading a, .child-actions a { color: #4f46e5; text-decoration: none; font-weight: 700; }
+    .attendance-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .attendance-list li { display: grid; grid-template-columns: minmax(100px,.7fr) auto 1.5fr; align-items: center; gap: 10px; background: #f8fafc; padding: 10px 12px; border-radius: 10px; }
+    .attendance-list small { color: #64748b; } .status { justify-self: start; border-radius: 999px; padding: 5px 9px; background: #f1f5f9; font-size: .72rem; }
+    .status.present { background: #dcfce7; color: #166534; } .status.absent { background: #fee2e2; color: #991b1b; } .status.late { background: #fef3c7; color: #92400e; }
+    .child-actions { display: flex; flex-wrap: wrap; gap: 10px 20px; border-top: 1px solid #edf2f7; padding-top: 14px; }
+    .loading, .empty-inline { color: #64748b; } .error-state { color: #b91c1c; } .error-state p { margin: 6px 0 12px; }
+    .error-state button { border: 0; border-radius: 9px; padding: 9px 13px; background: #eef2ff; color: #3730a3; font-weight: 700; cursor: pointer; }
+    @media (max-width: 600px) { .attendance-list li { grid-template-columns: 1fr auto; } .attendance-list small { grid-column: 1 / -1; } .metric.fees { grid-column: auto; } }
+  `],
 })
 export class ParentDashboardComponent implements OnInit {
-  dashboard: ParentDashboardDto | null = null;
+  private readonly studentService = inject(StudentService);
+  private readonly attendanceService = inject(AttendanceService);
+  private readonly feeService = inject(FeeService);
+  private readonly authService = inject(AuthService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
-  constructor(private readonly dataService: MockDataService) {}
+  children: ChildOverview[] = [];
+  loading = true;
+  detailRequestsPending = 0;
+  errorMessage: string | null = null;
+  readonly parentName = this.authService.getCurrentUser()?.name?.split(' ')[0] || 'there';
+
+  get totalOutstanding(): number {
+    return this.children.reduce((total, child) => total + child.outstandingFees, 0);
+  }
+
+  get familyAttendance(): number | string {
+    const summaries = this.children.map((child) => child.summary).filter((summary): summary is AttendanceSummary => summary !== null);
+    if (!summaries.length) return '—';
+    const workingDays = summaries.reduce((total, summary) => total + (summary.workingDays || 0), 0);
+    const presentDays = summaries.reduce((total, summary) => total + (summary.presentDays || 0), 0);
+    return workingDays ? Math.round((presentDays / workingDays) * 100) : 0;
+  }
 
   ngOnInit(): void {
-    this.dashboard = this.dataService.getParentDashboard();
+    this.loadChildren();
+  }
+
+  loadChildren(): void {
+    this.loading = true;
+    this.errorMessage = null;
+    const tenantId = this.authService.getTenantId() ?? '';
+    this.studentService.getMyStudents(tenantId, 1, 50).subscribe({
+      next: (response) => {
+        this.children = (response.data || []).map((student) => ({ student, summary: null, recentAttendance: [], outstandingFees: 0 }));
+        this.detailRequestsPending = this.children.length;
+        if (!this.children.length) {
+          this.loading = false;
+          this.cdr.detectChanges();
+          return;
+        }
+        this.children.forEach((child) => this.loadChildDetails(child, tenantId));
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || err?.message || 'Unable to load linked students.';
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private loadChildDetails(child: ChildOverview, tenantId: string): void {
+    forkJoin({
+      summary: this.attendanceService.getChildCurrentSummary(child.student.id, tenantId).pipe(catchError(() => of(null))),
+      attendance: this.attendanceService.getChildAttendance(child.student.id, tenantId, undefined, undefined, 1, 3).pipe(catchError(() => of(null))),
+      fees: this.feeService.getParentSummary(child.student.id, undefined, 1, 100, tenantId).pipe(catchError(() => of(null))),
+    }).subscribe(({ summary, attendance, fees }) => {
+      child.summary = summary?.data ?? null;
+      child.recentAttendance = attendance?.data ?? [];
+      child.outstandingFees = (fees?.data ?? []).reduce((total, entry) => total + (entry.outstandingAmount || 0), 0);
+      this.detailRequestsPending -= 1;
+      if (this.detailRequestsPending === 0) this.loading = false;
+      this.cdr.detectChanges();
+    });
   }
 }

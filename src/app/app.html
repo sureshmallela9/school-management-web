@@ -32,27 +32,4 @@
     <router-outlet></router-outlet>
   </main>
 
-  <nav class="bottom-nav" *ngIf="isAuthenticated()" aria-label="Mobile navigation">
-    <a routerLink="/app/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Home</a>
-    <a
-      [routerLink]="isAdmin() ? '/admin/students' : '/app/students'"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: false }"
-      >Students</a
-    >
-    <a routerLink="/app/bus" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Bus</a>
-    <a
-      [routerLink]="isAdmin() ? '/admin/attendance' : isTeacher() ? '/teacher/attendance/mark' : '/app/attendance'"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: false }"
-      >Attendance</a
-    >
-    <a
-      [routerLink]="isAdmin() ? '/admin/fees' : isTeacher() ? '/teacher/fees' : '/app/fees'"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: false }"
-      >Fees</a
-    >
-    <a routerLink="/app/notifications" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Notices</a>
-  </nav>
 </div>
