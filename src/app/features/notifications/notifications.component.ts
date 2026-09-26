@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
-import { MockDataService } from '../../core/services/mock-data.service';
 import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
@@ -19,6 +18,7 @@ import { NotificationService } from '../../core/services/notification.service';
 
       <p class="loading" *ngIf="loading">Loading notifications...</p>
       <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+      <p class="info" *ngIf="infoMessage">{{ infoMessage }}</p>
 
       <article class="notice" *ngFor="let notice of notices">
         <div class="notice-header">
@@ -31,7 +31,7 @@ import { NotificationService } from '../../core/services/notification.service';
           <button *ngIf="isAdmin && !notice.isRead" type="button" (click)="markAsRead(notice.id)">Mark as read</button>
         </div>
       </article>
-      <p class="empty" *ngIf="!loading && !notices.length">No notifications found.</p>
+      <p class="empty" *ngIf="!loading && !errorMessage && !infoMessage && !notices.length">No notifications found.</p>
     </section>
   `,
   styles: [
@@ -47,6 +47,7 @@ import { NotificationService } from '../../core/services/notification.service';
       .notice-footer button { border: 0; border-radius: 8px; padding: 6px 10px; background: #eef2ff; color: #3730a3; font-weight: 700; cursor: pointer; }
       .loading, .empty { color: #64748b; }
       .error { color: #b91c1c; font-weight: 700; }
+      .info { color: #64748b; background: white; padding: 16px; border-radius: 12px; }
       small { color: #64748b; }
     `,
   ],
@@ -54,26 +55,53 @@ import { NotificationService } from '../../core/services/notification.service';
 export class NotificationsComponent implements OnInit {
   private readonly notificationService = inject(NotificationService);
   private readonly authService = inject(AuthService);
-  private readonly dataService = inject(MockDataService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   notices: Array<{ id: string; title: string; description: string; isRead: boolean; createdAt: string }> = [];
   loading = true;
   errorMessage: string | null = null;
+  infoMessage: string | null = null;
 
   get isAdmin(): boolean {
     const roles = this.authService.getRoles();
     return roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPERADMIN');
   }
 
+  get isParent(): boolean {
+    return this.authService.hasRole('ROLE_PARENT');
+  }
+
   ngOnInit(): void {
     if (this.isAdmin) {
       this.loadAdminNotifications();
+    } else if (this.isParent) {
+      this.loadParentNotifications();
     } else {
-      // No parent/teacher-facing notification-list endpoint is documented on the backend yet.
-      this.notices = this.dataService.getNotifications();
+      this.notices = [];
+      this.infoMessage = 'A teacher notifications feed is not available from the current backend.';
       this.loading = false;
     }
+  }
+
+  private loadParentNotifications(): void {
+    this.notificationService.listForParent(undefined, 1, 20).subscribe({
+      next: (response) => {
+        this.notices = (response.data || []).map((notice) => ({
+          id: notice.id,
+          title: notice.title,
+          description: notice.message,
+          isRead: notice.isRead,
+          createdAt: notice.timestamp ? new Date(notice.timestamp).toISOString() : '',
+        }));
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || err?.message || 'Failed to load parent notifications.';
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   private loadAdminNotifications(): void {

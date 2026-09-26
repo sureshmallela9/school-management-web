@@ -22,6 +22,12 @@ export class NotificationService {
     return this.http.get<PaginatedResponse<NotificationDto>>(`${API_BASE_URL}/api/admin/notifications`, { params });
   }
 
+  listForParent(isRead?: boolean, page = 1, limit = 20): Observable<PaginatedResponse<NotificationDto>> {
+    let params = new HttpParams().set('tenantId', this.tenantId()).set('page', page).set('limit', limit);
+    if (isRead !== undefined) params = params.set('isRead', isRead);
+    return this.http.get<PaginatedResponse<NotificationDto>>(`${API_BASE_URL}/api/parent/notifications`, { params });
+  }
+
   markAsRead(id: string): Observable<ApiResponse<NotificationDto>> {
     const params = new HttpParams().set('tenantId', this.tenantId());
     return this.http.patch<ApiResponse<NotificationDto>>(`${API_BASE_URL}/api/notifications/${id}/read`, {}, { params });

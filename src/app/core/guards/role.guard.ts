@@ -14,7 +14,17 @@ export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
     return true;
   }
 
-  return router.createUrlTree(['/app/home']);
+  if (authService.hasRole('ROLE_ADMIN') || authService.hasRole('ROLE_SUPERADMIN')) {
+    return router.createUrlTree(['/admin/tenants']);
+  }
+  if (authService.hasRole('ROLE_TEACHER')) {
+    return router.createUrlTree(['/teacher/home']);
+  }
+  if (authService.hasRole('ROLE_PARENT')) {
+    return router.createUrlTree(['/app/home']);
+  }
+
+  return router.createUrlTree(['/auth/login']);
 };
 
 @Injectable({ providedIn: 'root' })

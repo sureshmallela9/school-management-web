@@ -23,13 +23,33 @@ export class App {
   readonly isTeacher = computed(() => (this.currentUser()?.roles ?? []).includes('ROLE_TEACHER'));
 
   readonly navItems = computed(() => [
-    { label: 'Home', path: '/app/home' },
-    { label: 'Students', path: this.isAdmin() ? '/admin/students' : '/app/students' },
-    { label: 'Attendance', path: this.isAdmin() ? '/admin/attendance' : this.isTeacher() ? '/teacher/attendance/mark' : '/app/attendance' },
-    { label: 'Fees', path: this.isAdmin() ? '/admin/fees' : this.isTeacher() ? '/teacher/fees' : '/app/fees' },
-    ...(this.isTeacher() ? [{ label: 'Homework', path: '/teacher/homework' }] : []),
-    { label: 'Bus', path: '/app/bus' },
-    { label: 'Notices', path: '/app/notifications' },
+    ...(this.isTeacher()
+      ? [
+          { label: 'Home', path: '/teacher/home' },
+          { label: 'Attendance', path: '/teacher/attendance/mark' },
+          { label: 'Today', path: '/teacher/attendance/today' },
+          { label: 'Student History', path: '/teacher/attendance/student' },
+          { label: 'Homework', path: '/teacher/homework' },
+          { label: 'Fees', path: '/teacher/fees' },
+        ]
+      : this.isAdmin()
+        ? [
+            { label: 'Home', path: '/admin/tenants' },
+            { label: 'Students', path: '/admin/students' },
+            { label: 'Attendance', path: '/admin/attendance' },
+            { label: 'Fees', path: '/admin/fees' },
+            { label: 'Schools', path: '/admin/schools' },
+          ]
+        : [
+            { label: 'Home', path: '/app/home' },
+            { label: 'Children', path: '/app/students' },
+            { label: 'Attendance', path: '/app/attendance' },
+            { label: 'Fees', path: '/app/fees' },
+            { label: 'Homework', path: '/app/daily-diary' },
+            { label: 'Leave requests', path: '/app/leave-requests' },
+            { label: 'Bus', path: '/app/bus' },
+            { label: 'Notices', path: '/app/notifications' },
+          ]),
   ]);
 
   logout(): void {

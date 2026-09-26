@@ -14,7 +14,6 @@ import { AuthService } from '../../core/services/auth.service';
         <div class="brand-block">
           <div class="brand-badge">QS</div>
           <h1>QSchool</h1>
-          <p>Secure, mobile-first school operations dashboard.</p>
         </div>
 
         <form class="login-form" (ngSubmit)="login()">
@@ -32,11 +31,6 @@ import { AuthService } from '../../core/services/auth.service';
 
           <button type="submit" class="primary-btn" [disabled]="isSubmitting">{{ isSubmitting ? 'Signing in...' : 'Sign in' }}</button>
 
-          <div class="demo-row">
-            <button type="button" class="ghost-btn" (click)="quickLogin('jane.parent@school.com')">Parent</button>
-            <button type="button" class="ghost-btn" (click)="quickLogin('jane.doe@northwood.com')">Teacher</button>
-            <button type="button" class="ghost-btn" (click)="quickLogin('admin@central.com')">Admin</button>
-          </div>
         </form>
       </div>
     </section>
@@ -130,21 +124,8 @@ import { AuthService } from '../../core/services/auth.service';
         color: white;
       }
 
-      .ghost-btn {
-        background: #edf2ff;
-        color: #1d2f59;
-        padding: 10px 12px;
-      }
-
-      .primary-btn:hover,
-      .ghost-btn:hover {
+      .primary-btn:hover {
         transform: translateY(-1px);
-      }
-
-      .demo-row {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px;
       }
 
       .error-text {
@@ -192,9 +173,4 @@ export class LoginComponent {
     });
   }
 
-  quickLogin(email: string): void {
-    this.email = email;
-    this.password = 'password123';
-    this.login();
-  }
 }

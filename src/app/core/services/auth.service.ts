@@ -13,9 +13,16 @@ interface AuthResponseUser {
   school?: { id: string; name: string; code: string; address?: string };
 }
 
+type LoginData = {
+  accessToken?: string;
+  token?: string;
+  refreshToken?: string;
+  user?: AuthResponseUser;
+};
+
 interface AuthApiResponse {
   success: boolean;
-  data: { accessToken: string; refreshToken: string; user: AuthResponseUser } | null;
+  data: LoginData | null;
   message: string;
   error: string | null;
   code: number | null;
@@ -36,10 +43,18 @@ export class AuthService {
   login(username: string, password: string): Observable<{ token: string }> {
     return this.http.post<AuthApiResponse>(`${API_BASE_URL}/api/auth/login`, { username: username.trim(), password }).pipe(
       map((response) => {
-        if (!response.success || !response.data) {
+        if (!response || !response.success || !response.data) {
+          throw new Error(response?.message || 'Login failed');
+        }
+
+        const rawToken = response.data.accessToken ?? response.data.token;
+        const user = response.data.user;
+
+        if (!rawToken || !user) {
           throw new Error(response.message || 'Login failed');
         }
-        return response.data;
+
+        return { accessToken: rawToken, user };
       }),
       tap(({ accessToken, user }) => {
         const mappedUser: UserDto = {
@@ -48,8 +63,10 @@ export class AuthService {
           email: user.email,
           tenantId: user.tenantId,
           schoolId: user.school?.id,
-          // backend roles are sometimes plain ("ADMIN") and sometimes pre-prefixed ("ROLE_ADMIN") - normalize
-          roles: user.roles.map((role) => (role.startsWith('ROLE_') ? role : `ROLE_${role}`)),
+          roles: (user.roles ?? []).map((role) => {
+            const normalized = String(role).trim();
+            return normalized.startsWith('ROLE_') ? normalized : `ROLE_${normalized}`;
+          }),
         };
         this.setToken(accessToken, mappedUser);
       }),
